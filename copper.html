@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fiber Optic Color Chart Builder — TIA-598-D</title>
+<title>Copper Telephone Color Chart Builder — 25-Pair</title>
 <style>
   :root {
     --brand:    #0875BE;
@@ -21,20 +21,6 @@
     --mono:     'JetBrains Mono', 'Fira Mono', 'Cascadia Code', monospace;
     --sans:     'Inter', 'Segoe UI', system-ui, sans-serif;
   }
-  [data-theme="light"] {
-    --brand:    #0875BE;
-    --brand-dk: #055a94;
-    --bg:       #ffffff;
-    --surface:  #f5f7fa;
-    --surface2: #e8ecf1;
-    --border:   #d1d9e3;
-    --text:     #1a2634;
-    --muted:    #6b7c93;
-    --accent:   #0875BE;
-    --green:    #22c55e;
-    --dead-bg:  #e2e8f0;
-    --dead-fg:  #64748b;
-  }
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: var(--sans); background: var(--bg); color: var(--text); min-height: 100vh; }
 
@@ -43,7 +29,7 @@
     border-bottom: 1px solid var(--border);
     padding: 16px 24px;
   }
-  .header-inner { max-width: 1300px; margin: 0 auto; display: flex; align-items: center; gap: 14px; }
+  .header-inner { max-width: 1400px; margin: 0 auto; display: flex; align-items: center; gap: 14px; }
   .logo-mark { width: 34px; height: 34px; background: var(--brand); border-radius: 7px; display: grid; place-items: center; font-size: 17px; flex-shrink: 0; }
   .header-title { font-size: 16px; font-weight: 700; letter-spacing: -.3px; }
   .header-sub   { font-size: 11px; color: var(--muted); margin-top: 1px; }
@@ -52,7 +38,7 @@
     background: var(--surface); border-bottom: 1px solid var(--border);
     padding: 10px 24px; position: sticky; top: 0; z-index: 50;
   }
-  .toolbar-inner { max-width: 1300px; margin: 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .toolbar-inner { max-width: 1400px; margin: 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
   .tool-group { display: flex; align-items: center; gap: 5px; }
   .tool-label { font-size: 10px; text-transform: uppercase; letter-spacing: .7px; color: var(--muted); white-space: nowrap; }
 
@@ -85,7 +71,7 @@
   #lookupInput:focus { outline: 2px solid var(--brand); }
   .lookup-result { font-family: var(--mono); font-size: 11px; color: var(--muted); white-space: nowrap; }
 
-  .main { max-width: 1300px; margin: 0 auto; padding: 18px 24px 60px; }
+  .main { max-width: 1400px; margin: 0 auto; padding: 18px 24px 60px; }
   .layout { display: grid; grid-template-columns: 1fr 310px; gap: 18px; align-items: start; }
   @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
 
@@ -111,7 +97,7 @@
   }
   th.group-th { text-align: left; padding-left: 6px; }
 
-  /* ── FIBER CELL ── */
+  /* ── PAIR CELL ── */
   .fiber-cell {
     width: 48px; height: 54px;
     border-radius: 4px;
@@ -123,22 +109,26 @@
     transition: transform .1s, box-shadow .1s, border-color .1s;
     overflow: hidden;
     padding: 6px 2px 0;
+    color: #fff; /* Ensure text is white for split background */
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.8), -1px -1px 2px rgba(0,0,0,0.8), 0px 0px 4px rgba(0,0,0,0.9); /* Heavy shadow for legibility over split gradients */
   }
   .fiber-cell:hover { transform: scale(1.1); box-shadow: 0 4px 14px #0008; z-index: 5; }
   .fiber-cell.selected { border-color: #fff !important; box-shadow: 0 0 0 2px #fff5; }
   .fiber-cell.has-count { outline: 2px solid rgba(255,255,255,0.35); outline-offset: -2px; }
   
   .fiber-cell.is-dead {
-    filter: grayscale(80%);
+    background: var(--dead-bg) !important; /* Override gradient for dead pairs */
     opacity: 0.7;
     outline: 1px dashed var(--muted);
     outline-offset: -2px;
+    text-shadow: none;
+    color: var(--dead-fg);
   }
 
   .fc-label {
     font-size: 8.5px; font-weight: 700; line-height: 1;
     display: block; width: 100%; text-align: center;
-    margin-bottom: 2px; color: var(--accent);
+    margin-bottom: 2px;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .fiber-cell.is-dead .fc-label { color: var(--text); opacity: 0.6; }
@@ -151,21 +141,21 @@
     font-size: 9.5px; font-weight: 500; line-height: 1.1;
     display: block; width: 100%; text-align: center;
     opacity: 0.92;
-    border-top: 1px solid rgba(255,255,255,0.2);
+    border-top: 1px solid rgba(255,255,255,0.4);
     padding-top: 1px;
     margin-top: 1px;
   }
-  .fc-count.empty { opacity: 0.3; font-size: 8px; }
-  .fc-cycle { position: absolute; bottom: 0; left: 0; right: 0; height: 5px; opacity: .8; }
+  .fc-count.empty { opacity: 0.5; font-size: 8px; }
 
   .group-cell {
     border-radius: 4px; padding: 3px 7px;
     white-space: nowrap; font-size: 10px; font-weight: 700;
     position: relative; overflow: hidden;
     min-width: 100px; vertical-align: middle;
+    color: #fff;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.8), -1px -1px 2px rgba(0,0,0,0.8);
   }
   .group-cell-inner { position: relative; z-index: 1; line-height: 1.4; }
-  .group-cycle-bar { position: absolute; bottom: 0; left: 0; right: 0; height: 5px; opacity: .8; }
 
   /* ── SIDEBAR ── */
   .sidebar { display: flex; flex-direction: column; gap: 12px; }
@@ -245,16 +235,25 @@
     padding: 5px 8px; font-size: 11px; animation: fadeIn .18s ease;
   }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; } }
-  .assign-swatch { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+  .assign-swatch { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
   .assign-label { font-family: var(--mono); font-weight: 700; color: var(--accent); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .assign-range { color: var(--muted); font-family: var(--mono); font-size: 10px; white-space: nowrap; }
   .assign-del { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 13px; line-height: 1; padding: 0 2px; border-radius: 3px; transition: color .1s; }
   .assign-del:hover { color: #fca5a5; }
   .assign-empty { font-size: 11px; color: var(--muted); text-align: center; padding: 16px 0; }
 
-  .legend-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; }
-  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; }
-  .legend-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; border: 1px solid #ffffff18; }
+  .legend-grid { 
+    display: grid; 
+    grid-template-columns: repeat(5, 1fr); 
+    gap: 4px; 
+    text-align: center;
+  }
+  .legend-item { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 9px; }
+  .legend-swatch { 
+    width: 20px; height: 20px; 
+    border-radius: 50%; 
+    border: 1px solid #ffffff33; 
+  }
 
   .modal-backdrop { position: fixed; inset: 0; background: #000a; display: none; place-items: center; z-index: 999; }
   .modal-backdrop.open { display: grid; }
@@ -270,7 +269,7 @@
     margin-bottom: 12px; font-family: var(--mono); font-size: 11px;
     display: flex; align-items: center; gap: 9px;
   }
-  .modal-swatch { width: 26px; height: 26px; border-radius: 5px; flex-shrink: 0; }
+  .modal-swatch { width: 26px; height: 26px; border-radius: 5px; flex-shrink: 0; border: 1px solid #fff5; }
   .modal-fiber-detail { line-height: 1.7; }
   .modal-fiber-detail span { color: var(--muted); }
   .modal input[type=text], .modal input[type=number] {
@@ -294,44 +293,16 @@
   ::-webkit-scrollbar { width: 5px; height: 5px; }
   ::-webkit-scrollbar-track { background: var(--surface); }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-  @media print {
-    /* Always print in light theme for paper savings */
-    [data-theme="dark"] { display: none; }
-    
-    .chart-cell.is-dead { filter: grayscale(100%); }
-    
-    /* Make sure colors render on printed output */
-    .fiber-cell, .group-cell, .legend-swatch, .assign-swatch, 
-    .modal-swatch { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    
-    /* Hide interface elements we don't want in print */
-    header, .toolbar, .sidebar, .modal-backdrop, .toast { display: none !important; }
-    
-    /* Clean up the chart itself */
-    .main { padding: 0 !important; max-width: none !important; }
-    .layout { display: block !important; }
-    .chart-wrap { border: none !important; overflow: visible !important; width: 100%; }
-    .chart-scroll { overflow: visible !important; white-space: nowrap; }
-    .chart-header-title { color: #000 !important; }
-    
-    /* Adjust table headers for legibility */
-    table.fiber-table th { background: transparent !important; color: #333 !important; }
-    
-    /* Remove hover effects from print */
-    .fiber-cell:hover { transform: none !important; box-shadow: none !important; }
-}
 </style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
 
 <header>
   <div class="header-inner">
-    <div class="logo-mark">🔆</div>
+    <div class="logo-mark">📞</div>
     <div>
-      <div class="header-title">Fiber Optic Color Chart Builder</div>
-      <div class="header-sub">TIA-598-D &nbsp;·&nbsp; Interactive count assignment</div>
+      <div class="header-title">Copper Telephone Color Chart Builder</div>
+      <div class="header-sub">25-Pair Color Code &nbsp;·&nbsp; Interactive count assignment</div>
     </div>
   </div>
 </header>
@@ -339,29 +310,24 @@
 <div class="toolbar">
   <div class="toolbar-inner">
     <div class="tool-group">
-      <span class="tool-label">Cable Size</span>
+      <span class="tool-label">Cable Size (Pairs)</span>
       <select id="cableSize">
-        <option value="6">6</option><option value="12">12</option>
-        <option value="24">24</option><option value="36">36</option>
-        <option value="48">48</option><option value="72">72</option>
-        <option value="96">96</option><option value="144" selected>144</option>
-        <option value="216">216</option><option value="288">288</option>
-        <option value="432">432</option><option value="576">576</option>
-        <option value="864">864</option>
-      </select>
-    </div>
-    <div class="tool-group">
-      <span class="tool-label">Fibers/Ribbon</span>
-      <select id="fibersPerRibbon">
-        <option value="12" selected>12</option>
         <option value="6">6</option>
-        <option value="16">16 (MPO)</option>
-        <option value="24">24</option>
+        <option value="12">12</option>
+        <option value="25">25</option>
+        <option value="50">50</option>
+        <option value="75">75</option>
+        <option value="100" selected>100</option>
+        <option value="150">150</option>
+        <option value="200">200</option>
+        <option value="300">300</option>
+        <option value="400">400</option>
+        <option value="600">600</option>
       </select>
     </div>
     <div class="sep"></div>
     <div class="toggle-wrap">
-      <label title="Automatically aligns assignments to TIA-598-D color boundaries">
+      <label title="Automatically aligns assignments to 25-pair color boundaries">
         <input type="checkbox" id="alignToggle" checked> Color Sync
       </label>
     </div>
@@ -371,25 +337,13 @@
       </label>
     </div>
     <div class="sep"></div>
-<div class="toggle-wrap" id="themeToggleWrap">
-  <label title="Switch between dark and light themes">
-    <input type="checkbox" id="themeToggle"> 🌗 Theme
-  </label>
-</div>
-    <div class="sep"></div>
     <button class="btn btn-danger" id="clearBtn">Clear All</button>
     <div class="sep"></div>
-    <a href="./copper.html"><button class="btn">Switch to Copper</button></a>
+    <a href="./index.html"><button class="btn">Switch to Fiber</button></a>
     <div class="sep"></div>
-    <div class="tool-group">
-      <span class="tool-label">Export</span>
-      <button class="btn" id="exportPng">📷 PNG</button>
-      <button class="btn" id="exportPdf">📄 PDF</button>
-      <button class="btn" id="exportPrint">🖨️ Print</button>
-    </div>
     <div class="lookup-wrap">
-      <span class="tool-label">Lookup #</span>
-      <input type="number" id="lookupInput" min="1" placeholder="fiber #">
+      <span class="tool-label">Lookup Pair</span>
+      <input type="number" id="lookupInput" min="1" placeholder="pair #">
       <span class="lookup-result" id="lookupResult">—</span>
     </div>
   </div>
@@ -399,8 +353,8 @@
   <div class="layout">
     <div class="chart-wrap">
       <div class="chart-header">
-        <span class="chart-header-title" id="chartTitle">144-fiber · 12 ribbons</span>
-        <span style="font-size:10px;color:var(--muted)">Top = fiber pos &nbsp;·&nbsp; Bottom = count &nbsp;·&nbsp; Click to assign</span>
+        <span class="chart-header-title" id="chartTitle">100-pair · 4 Binders</span>
+        <span style="font-size:10px;color:var(--muted)">Top = pair pos &nbsp;·&nbsp; Bottom = count &nbsp;·&nbsp; Click to assign</span>
       </div>
       <div class="chart-scroll">
         <table class="fiber-table" id="fiberTable"></table>
@@ -416,7 +370,7 @@
         <div class="panel-body">
           <div id="rowMode">
             <div class="count-row-header">
-              <span>#</span><span>Label</span><span>Start #</span><span>End #</span><span></span>
+              <span>#</span><span>Label</span><span>Start</span><span>End</span><span></span>
             </div>
             <div class="count-rows" id="countRows"></div>
             <button class="add-row-btn" id="addRowBtn">+ Add row</button>
@@ -452,7 +406,7 @@
       </div>
 
       <div class="panel">
-        <div class="panel-header">TIA-598-D Color Sequence</div>
+        <div class="panel-header">25-Pair Color Sequence</div>
         <div class="panel-body">
           <div class="legend-grid" id="legendGrid"></div>
         </div>
@@ -464,14 +418,14 @@
 <div class="modal-backdrop" id="modalBackdrop">
   <div class="modal">
     <h3>Assign Count</h3>
-    <p>Enter a label and optional end fiber for a range.</p>
+    <p>Enter a label and optional end pair for a range.</p>
     <div class="modal-fiber-info">
       <div class="modal-swatch" id="modalSwatch"></div>
       <div class="modal-fiber-detail" id="modalFiberDetail"></div>
     </div>
     <input type="text" id="modalLabelInput" placeholder="Label (e.g. a, XD, F037)" autocomplete="off">
     <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center">
-      <span style="font-size:11px;color:var(--muted);white-space:nowrap;min-width:58px">End fiber:</span>
+      <span style="font-size:11px;color:var(--muted);white-space:nowrap;min-width:58px">End pair:</span>
       <input type="number" id="modalEndInput" placeholder="optional" style="flex:1;margin-bottom:0">
     </div>
     <div class="modal-actions">
@@ -483,26 +437,36 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const TIA = [
-  { name: 'Blue',   bg: '#1565c0', fg: '#ffffff' },
-  { name: 'Orange', bg: '#e65100', fg: '#ffffff' },
-  { name: 'Green',  bg: '#2e7d32', fg: '#ffffff' },
-  { name: 'Brown',  bg: '#6d4c41', fg: '#ffffff' },
-  { name: 'Slate',  bg: '#607d8b', fg: '#ffffff' },
-  { name: 'White',  bg: '#eceff1', fg: '#263238' },
-  { name: 'Red',    bg: '#c62828', fg: '#ffffff' },
-  { name: 'Black',  bg: '#212121', fg: '#ffffff' },
-  { name: 'Yellow', bg: '#f9a825', fg: '#212121' },
-  { name: 'Violet', bg: '#6a1b9a', fg: '#ffffff' },
-  { name: 'Rose',   bg: '#e91e8c', fg: '#ffffff' },
-  { name: 'Aqua',   bg: '#0097a7', fg: '#ffffff' },
+// Copper 25-Pair Color Data
+const TIPS = [
+  { name: 'White',  hex: '#f8fafc' },
+  { name: 'Red',    hex: '#ef4444' },
+  { name: 'Black',  hex: '#1e293b' },
+  { name: 'Yellow', hex: '#eab308' },
+  { name: 'Violet', hex: '#a855f7' }
 ];
-const CYCLE_COLORS = ['#1565c0','#e65100','#2e7d32','#c62828','#f9a825','#6a1b9a'];
-const LABEL_COLORS = ['#38bdf8', '#a3e635', '#f472b6', '#c084fc', '#fbbf24', '#2dd4bf', '#f87171', '#e879f9', '#4ade80', '#facc15'];
+const RINGS = [
+  { name: 'Blue',   hex: '#3b82f6' },
+  { name: 'Orange', hex: '#f97316' },
+  { name: 'Green',  hex: '#22c55e' },
+  { name: 'Brown',  hex: '#78350f' },
+  { name: 'Slate',  hex: '#64748b' }
+];
 
-const fiberColor = n => TIA[(n - 1) % 12];
-const groupColor = g => TIA[(g - 1) % 12];
-const cycleIdx   = g => Math.floor((g - 1) / 12);
+const LABEL_COLORS = ['#38bdf8', '#a3e635', '#f472b6', '#c084fc', '#fbbf24', '#2dd4bf', '#f87171', '#e879f9', '#4ade80', '#facc15'];
+const PAIRS_PER_BINDER = 25;
+
+// Helper to get Tip and Ring info based on a 1-indexed number
+const getPairColors = (n) => {
+  const zeroIndex = (n - 1) % 25;
+  const tip = TIPS[Math.floor(zeroIndex / 5)];
+  const ring = RINGS[zeroIndex % 5];
+  const bg = `linear-gradient(135deg, ${tip.hex} 50%, ${ring.hex} 50%)`;
+  return { tip, ring, bg, fullName: `${tip.name}/${ring.name}` };
+};
+
+// Binders use the exact same color code
+const getBinderColors = (g) => getPairColors(g);
 
 function getLabelColor(label) {
   let l = label.trim().toLowerCase();
@@ -512,13 +476,11 @@ function getLabelColor(label) {
   return LABEL_COLORS[Math.abs(hash) % LABEL_COLORS.length];
 }
 
-let cableSize     = 144;
-let fibersPerRibbon = 12;
+let cableSize = 100;
 let assignments = {};
 let countRowData = [];
 
 const cableSizeEl     = document.getElementById('cableSize');
-const fibersPerRibbonEl = document.getElementById('fibersPerRibbon');
 const alignToggle     = document.getElementById('alignToggle');
 const colorSepToggle  = document.getElementById('colorSepToggle');
 const fiberTable      = document.getElementById('fiberTable');
@@ -534,7 +496,7 @@ const modalFiberDetail= document.getElementById('modalFiberDetail');
 const modalLabelInput = document.getElementById('modalLabelInput');
 const modalEndInput   = document.getElementById('modalEndInput');
 const toast           = document.getElementById('toast');
-let modalFiberNum = null;
+let modalPairNum = null;
 
 function validateRows(rows) {
   let liveCounts = new Set();
@@ -552,12 +514,12 @@ function validateRows(rows) {
     
     if (isDead(row.label)) {
       for (let i = min; i <= max; i++) {
-        if (deadPos.has(i)) return `Dead fiber position ${i} is assigned multiple times.`;
+        if (deadPos.has(i)) return `Dead pair position ${i} is assigned multiple times.`;
         deadPos.add(i);
       }
     } else {
       for (let i = min; i <= max; i++) {
-        if (liveCounts.has(i)) return `Live count #${i} is duplicated (Check your overlaps around label "${row.label}").`;
+        if (liveCounts.has(i)) return `Live count #${i} is duplicated (Check overlaps around label "${row.label}").`;
         liveCounts.add(i);
       }
     }
@@ -581,7 +543,7 @@ function buildAssignments(rows) {
   const isDead = l => /^(xd|dead|cut dead|d)$/i.test(l.trim());
   const align = alignToggle.checked;
 
-  // PASS 1: Lock down dead fibers (Absolute Positioning)
+  // PASS 1: Lock down dead pairs (Absolute Positioning)
   for (const row of rows) {
     if (!row.label || !isDead(row.label)) continue;
     const start = parseInt(row.start);
@@ -610,8 +572,8 @@ function buildAssignments(rows) {
       const currentCount = countStart + i;
 
       if (align) {
-        const targetColor = (currentCount - 1) % 12;
-        while (cursor <= cableSize && (assignments[cursor] || ((cursor - 1) % 12 !== targetColor))) {
+        const targetColor = (currentCount - 1) % 25;
+        while (cursor <= cableSize && (assignments[cursor] || ((cursor - 1) % 25 !== targetColor))) {
           cursor++;
         }
       } else {
@@ -627,38 +589,34 @@ function buildAssignments(rows) {
 }
 
 function renderChart() {
-  const fpt = fibersPerRibbon;
-  const numRibbons = Math.ceil(cableSize / fpt);
+  const numBinders = Math.ceil(cableSize / PAIRS_PER_BINDER);
   const showColorSep = colorSepToggle.checked;
-  chartTitle.textContent = `${cableSize}-fiber · ${numRibbons} ribbon${numRibbons > 1 ? 's' : ''} × ${fpt} fibers`;
+  chartTitle.textContent = `${cableSize}-pair · ${numBinders} binder${numBinders > 1 ? 's' : ''}`;
 
-  let html = '<thead><tr><th class="group-th">Ribbon</th>';
-  for (let f = 1; f <= fpt; f++) {
-    const c = fiberColor(f);
-    html += `<th style="color:${c.bg}">${f}<br><span style="font-size:7px;opacity:.6">${c.name.slice(0,3)}</span></th>`;
+  let html = '<thead><tr><th class="group-th">Binder</th>';
+  for (let p = 1; p <= PAIRS_PER_BINDER; p++) {
+    const cols = getPairColors(p);
+    html += `<th>${p}<br><span style="font-size:7px;opacity:.6">${cols.tip.name.charAt(0)}/${cols.ring.name.charAt(0)}</span></th>`;
   }
   html += '</tr></thead><tbody>';
 
-  for (let g = 1; g <= numRibbons; g++) {
-    const gc    = groupColor(g);
-    const cycle = cycleIdx(g);
-    const cycleColor = cycle > 0 ? CYCLE_COLORS[(cycle - 1) % CYCLE_COLORS.length] : null;
-    const fibersInRibbon = (g === numRibbons) ? (cableSize - (numRibbons - 1) * fpt) : fpt;
+  for (let g = 1; g <= numBinders; g++) {
+    const binderColors = getBinderColors(g);
+    const pairsInBinder = (g === numBinders) ? (cableSize - (numBinders - 1) * PAIRS_PER_BINDER) : PAIRS_PER_BINDER;
 
     html += '<tr>';
-    html += `<td class="group-cell" style="background:${gc.bg};color:${gc.fg}">
+    html += `<td class="group-cell" style="background:${binderColors.bg}">
       <div class="group-cell-inner">
-        <div style="font-size:11px;font-weight:800">Ribbon ${g}</div>
-        <div style="font-size:9px;opacity:.85">${gc.name}</div>
+        <div style="font-size:11px;font-weight:800">Binder ${g}</div>
+        <div style="font-size:9px;opacity:.9">${binderColors.fullName}</div>
       </div>
-      ${cycleColor ? `<div class="group-cycle-bar" style="background:${cycleColor}"></div>` : ''}
     </td>`;
 
-    for (let f = 1; f <= fpt; f++) {
-      const absNum = (g - 1) * fpt + f;
-      const fc     = fiberColor(f);
+    for (let p = 1; p <= PAIRS_PER_BINDER; p++) {
+      const absNum = (g - 1) * PAIRS_PER_BINDER + p;
+      const cols   = getPairColors(p);
       const asgn   = assignments[absNum];
-      const isActive = f <= fibersInRibbon;
+      const isActive = p <= pairsInBinder;
 
       if (isActive) {
         const hasCount  = !!asgn;
@@ -667,21 +625,19 @@ function renderChart() {
         const labelDisp = hasCount ? (isDead ? 'XD' : asgn.label) : '';
         const labelColor = hasCount ? (showColorSep ? getLabelColor(asgn.label) : 'var(--accent)') : '';
         
-        let bgStyle = isDead ? 'var(--dead-bg)' : fc.bg;
-        let fgStyle = isDead ? 'var(--dead-fg)' : fc.fg;
+        let bgStyle = isDead ? '' : cols.bg;
         let deadClass = isDead ? ' is-dead' : '';
 
         // Add the top colored visual separator bar (only if toggled ON)
-        let topBar = (hasCount && !isDead && showColorSep) ? `<div style="position:absolute; top:0; left:0; right:0; height:4px; background:${getLabelColor(asgn.label)}; opacity:0.9"></div>` : '';
+        let topBar = (hasCount && !isDead && showColorSep) ? `<div style="position:absolute; top:0; left:0; right:0; height:4px; background:${getLabelColor(asgn.label)}; opacity:0.9; z-index:2"></div>` : '';
 
-        html += `<td class="fiber-cell${hasCount ? ' has-count' : ''}${deadClass}" data-fiber="${absNum}"
-          style="background:${bgStyle};color:${fgStyle}"
-          title="Fiber ${absNum} (${fc.name})${asgn ? ' · ' + asgn.label + ' #' + asgn.count : ''}">
+        html += `<td class="fiber-cell${hasCount ? ' has-count' : ''}${deadClass}" data-pair="${absNum}"
+          style="background:${bgStyle}"
+          title="Pair ${absNum} (${cols.fullName})${asgn ? ' · ' + asgn.label + ' #' + asgn.count : ''}">
           ${topBar}
-          <span class="fc-label" style="color:${labelColor}">${escHtml(labelDisp)}</span>
-          <span class="fc-pos">${absNum}</span>
-          <span class="fc-count${hasCount ? '' : ' empty'}">${countDisp}</span>
-          ${cycleColor ? `<div class="fc-cycle" style="background:${cycleColor}"></div>` : ''}
+          <span class="fc-label" style="color:${labelColor}; z-index:2; position:relative">${escHtml(labelDisp)}</span>
+          <span class="fc-pos" style="z-index:2; position:relative">${absNum}</span>
+          <span class="fc-count${hasCount ? '' : ' empty'}" style="z-index:2; position:relative">${countDisp}</span>
         </td>`;
       } else {
         html += `<td style="background:#1a2838;border-radius:4px;opacity:.15;width:48px;height:54px"></td>`;
@@ -693,7 +649,7 @@ function renderChart() {
   fiberTable.innerHTML = html;
 
   fiberTable.querySelectorAll('.fiber-cell').forEach(cell => {
-    cell.addEventListener('click', () => openModal(parseInt(cell.dataset.fiber)));
+    cell.addEventListener('click', () => openModal(parseInt(cell.dataset.pair)));
   });
 }
 
@@ -755,13 +711,13 @@ document.getElementById('applyBtn').addEventListener('click', () => {
 });
 
 document.getElementById('exampleBtn').addEventListener('click', () => {
-  cableSizeEl.value = '48';
-  cableSize = 48;
+  cableSizeEl.value = '50';
+  cableSize = 50;
   countRowData = [
-    { label: 'xd', start: '1',  end: '6' },
-    { label: 'a',  start: '7', end: '12' },
-    { label: 'b',  start: '13', end: '18' },
-    { label: 'xd', start: '19', end: '24' }
+    { label: 'xd', start: '1',  end: '10' },
+    { label: 'a',  start: '11', end: '25' },
+    { label: 'b',  start: '26', end: '40' },
+    { label: 'xd', start: '41', end: '50' }
   ];
   renderCountRows();
   validateAndApply();
@@ -788,9 +744,9 @@ document.getElementById('pasteApplyBtn').addEventListener('click', () => {
 document.getElementById('pasteExampleBtn').addEventListener('click', loadPasteExample);
 
 function loadPasteExample() {
-  cableSizeEl.value = '48';
-  cableSize = 48;
-  document.getElementById('countInput').value = `XD,1-6\nA,7-12\nB,13-18\nXD,19-24`;
+  cableSizeEl.value = '100';
+  cableSize = 100;
+  document.getElementById('countInput').value = `XD,1-25\nA,26-50\nB,51-75\nXD,76-100`;
   applyPaste(document.getElementById('countInput').value);
 }
 
@@ -803,7 +759,7 @@ function applyPaste(text) {
       const hm = line.match(/^(?:co|cable)?(\d+)/i);
       if (hm) {
         const n = parseInt(hm[1]);
-        if ([6,12,24,36,48,72,96,144,216,288,432,576,864].includes(n)) { cableSize = n; cableSizeEl.value = n; }
+        if ([6,12,25,50,75,100,150,200,300,400,600].includes(n)) { cableSize = n; cableSizeEl.value = n; }
       }
       continue;
     }
@@ -828,8 +784,8 @@ function renderAssignmentsList() {
   const showColorSep = colorSepToggle.checked;
   const grouped = {};
   for (const [fn, asgn] of Object.entries(assignments)) {
-    if (!grouped[asgn.label]) grouped[asgn.label] = { fibers: [], counts: [] };
-    grouped[asgn.label].fibers.push(parseInt(fn));
+    if (!grouped[asgn.label]) grouped[asgn.label] = { pairs: [], counts: [] };
+    grouped[asgn.label].pairs.push(parseInt(fn));
     if (asgn.count !== 'XD') grouped[asgn.label].counts.push(asgn.count);
   }
 
@@ -843,18 +799,18 @@ function renderAssignmentsList() {
 
   let html = '';
   for (const [label, data] of entries) {
-    const sortedFibers = data.fibers.sort((a,b) => a-b);
+    const sortedPairs = data.pairs.sort((a,b) => a-b);
     const sortedCounts = data.counts.sort((a,b) => a-b);
-    const fc = fiberColor(sortedFibers[0]);
+    const cols = getPairColors(sortedPairs[0]);
     const isDead = /^(xd|dead|cut dead|d)$/i.test(label);
     const labelColor = isDead ? 'var(--text)' : (showColorSep ? getLabelColor(label) : 'var(--accent)');
     
-    const fiberRange = compressRanges(sortedFibers);
+    const pairRange = compressRanges(sortedPairs);
     const countRange = sortedCounts.length ? compressRanges(sortedCounts) : 'Dead';
     html += `<div class="assign-row">
-      <div class="assign-swatch" style="background:${isDead ? 'var(--dead-bg)' : fc.bg}"></div>
+      <div class="assign-swatch" style="background:${isDead ? 'var(--dead-bg)' : cols.bg}"></div>
       <span class="assign-label" title="${escHtml(label)}" style="color:${labelColor}">${escHtml(label)}</span>
-      <span class="assign-range" title="Cable counts: ${escHtml(countRange)}">F${fiberRange}</span>
+      <span class="assign-range" title="Cable counts: ${escHtml(countRange)}">P${pairRange}</span>
       <button class="assign-del" data-label="${escHtml(label)}" title="Remove">×</button>
     </div>`;
   }
@@ -872,24 +828,27 @@ function renderAssignmentsList() {
 }
 
 function renderLegend() {
-  document.getElementById('legendGrid').innerHTML = TIA.map((c, i) =>
-    `<div class="legend-item"><div class="legend-swatch" style="background:${c.bg}"></div><span>${i+1}. ${c.name}</span></div>`
-  ).join('');
+  let legendHtml = '';
+  for(let i = 1; i <= 25; i++){
+    const cols = getPairColors(i);
+    legendHtml += `<div class="legend-item"><div class="legend-swatch" style="background:${cols.bg}"></div><span>${i}. ${cols.tip.name.charAt(0)}/${cols.ring.name.charAt(0)}</span></div>`;
+  }
+  document.getElementById('legendGrid').innerHTML = legendHtml;
 }
 
-function openModal(fiberNum) {
-  modalFiberNum = fiberNum;
-  const fc  = fiberColor(fiberNum);
-  const g   = Math.ceil(fiberNum / fibersPerRibbon);
-  const gc  = groupColor(g);
-  const pos = ((fiberNum - 1) % fibersPerRibbon) + 1;
-  const asgn = assignments[fiberNum];
+function openModal(pairNum) {
+  modalPairNum = pairNum;
+  const cols = getPairColors(pairNum);
+  const g   = Math.ceil(pairNum / PAIRS_PER_BINDER);
+  const binderCols = getBinderColors(g);
+  const pos = ((pairNum - 1) % PAIRS_PER_BINDER) + 1;
+  const asgn = assignments[pairNum];
 
-  modalSwatch.style.background = asgn && asgn.isDead ? 'var(--dead-bg)' : fc.bg;
+  modalSwatch.style.background = asgn && asgn.isDead ? 'var(--dead-bg)' : cols.bg;
   modalFiberDetail.innerHTML =
-    `<span>Fiber</span> <strong>${fiberNum}</strong><br>` +
-    `<span>Ribbon</span> <strong>Ribbon ${g} (${gc.name})</strong><br>` +
-    `<span>Position</span> <strong>${pos} — ${fc.name}</strong>` +
+    `<span>Pair</span> <strong>${pairNum}</strong><br>` +
+    `<span>Binder</span> <strong>Binder ${g} (${binderCols.fullName})</strong><br>` +
+    `<span>Position</span> <strong>${pos} — ${cols.fullName}</strong>` +
     (asgn ? `<br><span>Current</span> <strong>${escHtml(asgn.label)} #${asgn.count}</strong>` : '');
 
   modalLabelInput.value = asgn ? asgn.label : '';
@@ -898,12 +857,12 @@ function openModal(fiberNum) {
   setTimeout(() => modalLabelInput.focus(), 50);
 }
 
-function closeModal() { modalBackdrop.classList.remove('open'); modalFiberNum = null; }
+function closeModal() { modalBackdrop.classList.remove('open'); modalPairNum = null; }
 
 function doModalAssign() {
   const label = modalLabelInput.value.trim();
-  if (!label || modalFiberNum === null) { closeModal(); return; }
-  const start   = modalFiberNum;
+  if (!label || modalPairNum === null) { closeModal(); return; }
+  const start   = modalPairNum;
   const endRaw  = parseInt(modalEndInput.value);
   const end     = (!isNaN(endRaw) && endRaw >= start) ? Math.min(endRaw, cableSize) : start;
 
@@ -923,7 +882,7 @@ function doModalAssign() {
   renderCountRows();
   buildAndRender();
   closeModal();
-  showToast(`Assigned "${label}" → fiber${end > start ? 's ' + start + '–' + end : ' ' + start}`);
+  showToast(`Assigned "${label}" → pair${end > start ? 's ' + start + '–' + end : ' ' + start}`);
 }
 
 document.getElementById('modalAssign').addEventListener('click', doModalAssign);
@@ -948,22 +907,20 @@ lookupInput.addEventListener('input', doLookup);
 function doLookup() {
   const n = parseInt(lookupInput.value);
   if (!n || n < 1 || n > cableSize) { lookupResult.textContent = '—'; return; }
-  const fc   = fiberColor(n);
-  const g    = Math.ceil(n / fibersPerRibbon);
-  const gc   = groupColor(g);
-  const pos  = ((n - 1) % fibersPerRibbon) + 1;
+  const cols = getPairColors(n);
+  const g    = Math.ceil(n / PAIRS_PER_BINDER);
+  const pos  = ((n - 1) % PAIRS_PER_BINDER) + 1;
   const asgn = assignments[n];
   lookupResult.innerHTML =
-    `<span style="color:${asgn && asgn.isDead ? 'var(--dead-bg)' : fc.bg}">●</span> Ribbon ${g} ${gc.name} · pos ${pos} ${fc.name}` +
+    `<span style="display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:middle;background:${asgn && asgn.isDead ? 'var(--dead-bg)' : cols.bg}"></span> Binder ${g} · pos ${pos} ${cols.fullName}` +
     (asgn ? ` · <span style="color:var(--accent)">${escHtml(asgn.label)} #${asgn.count}</span>` : '');
 
   fiberTable.querySelectorAll('.fiber-cell.selected').forEach(c => c.classList.remove('selected'));
-  const cell = fiberTable.querySelector(`.fiber-cell[data-fiber="${n}"]`);
+  const cell = fiberTable.querySelector(`.fiber-cell[data-pair="${n}"]`);
   if (cell) { cell.classList.add('selected'); cell.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
 }
 
 cableSizeEl.addEventListener('change', () => { cableSize = parseInt(cableSizeEl.value); validateAndApply(); });
-fibersPerRibbonEl.addEventListener('change', () => { fibersPerRibbon = parseInt(fibersPerRibbonEl.value); validateAndApply(); });
 alignToggle.addEventListener('change', validateAndApply);
 colorSepToggle.addEventListener('change', () => { renderChart(); renderAssignmentsList(); });
 
@@ -993,103 +950,6 @@ renderLegend();
 renderCountRows();
 renderChart();
 renderAssignmentsList();
-
-// ── EXPORT: PNG ──
-document.getElementById('exportPng').addEventListener('click', async () => {
-  showToast('Capturing chart…');
-  const target = document.querySelector('.chart-wrap');
-  try {
-    const canvas = await html2canvas(target, {
-      backgroundColor: '#0f1923',
-      scale: 2,
-      useCORS: true,
-      logging: false
-    });
-    const link = document.createElement('a');
-    link.download = `fiber-chart-${cableSize}f-${Date.now()}.png`;
-    link.href = canvas.toDataURL('image/png');
-    link.click();
-    showToast('PNG saved');
-  } catch (err) {
-    console.error(err);
-    showToast('PNG export failed');
-  }
-});
-
-// ── EXPORT: PDF ──
-document.getElementById('exportPdf').addEventListener('click', async () => {
-  showToast('Building PDF…');
-  const target = document.querySelector('.chart-wrap');
-  try {
-    const canvas = await html2canvas(target, {
-      backgroundColor: '#0f1923',
-      scale: 2,
-      useCORS: true,
-      logging: false
-    });
-
-    const { jsPDF } = window.jspdf;
-    const imgData = canvas.toDataURL('image/png');
-
-    // Landscape, figure out page sizing
-    const pageW = 297;  // A4 landscape mm
-    const pageH = 210;
-    const margin = 10;
-    const usableW = pageW - margin * 2;
-    const usableH = pageH - margin * 2;
-
-    // Scale image to fit page width
-    const imgRatio = canvas.width / canvas.height;
-    let drawW = usableW;
-    let drawH = drawW / imgRatio;
-
-    if (drawH > usableH) {
-      drawH = usableH;
-      drawW = drawH * imgRatio;
-    }
-
-    const pdf = new jsPDF({
-      orientation: 'landscape',
-      unit: 'mm',
-      format: 'a4'
-    });
-
-    // Header
-    pdf.setFontSize(10);
-    pdf.setTextColor(120);
-    pdf.text(`Fiber Optic Color Chart — TIA-598-D — ${cableSize} fiber — ${new Date().toLocaleDateString()}`, margin, margin - 3);
-
-    // Chart image
-    pdf.addImage(imgData, 'PNG', margin, margin + 2, drawW, drawH);
-    pdf.save(`fiber-chart-${cableSize}f-${Date.now()}.pdf`);
-    showToast('PDF saved');
-  } catch (err) {
-    console.error(err);
-    showToast('PDF export failed');
-  }
-});
-
-// ── EXPORT: PRINT ──
-document.getElementById('exportPrint').addEventListener('click', () => {
-  window.print();
-});
-
-// ── THEME TOGGLE ──
-const themeToggle = document.getElementById('themeToggle');
-const savedTheme  = localStorage.getItem('lumo_fiber_theme') || 'dark';
-
-// Apply saved theme on load
-if (savedTheme === 'light') {
-  document.documentElement.setAttribute('data-theme', 'light');
-  themeToggle.checked = true;
-}
-
-// Listen for changes
-themeToggle.addEventListener('change', () => {
-  const newTheme = themeToggle.checked ? 'light' : 'dark';
-  document.documentElement.setAttribute('data-theme', newTheme);
-  localStorage.setItem('lumo_fiber_theme', newTheme);
-});
 </script>
 </body>
 </html>
