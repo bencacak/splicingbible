@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fiber Optic Color Chart Builder — TIA-598-D</title>
+<style>
+  :root {
+    --brand:    #0875BE;
+    --brand-dk: #055a94;
+    --bg:       #0f1923;
+    --surface:  #16232f;
+    --surface2: #1e3040;
+    --border:   #2a4258;
+    --text:     #e8f0f7;
+    --muted:    #7a9bb5;
+    --accent:   #f97316;
+    --green:    #22c55e;
+    --dead-bg:  #334155;
+    --dead-fg:  #94a3b8;
+    --mono:     'JetBrains Mono', 'Fira Mono', 'Cascadia Code', monospace;
+    --sans:     'Inter', 'Segoe UI', system-ui, sans-serif;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--sans); background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  header {
+    background: linear-gradient(135deg, #0a1520 0%, #0d2035 60%, #0875be22 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 24px;
+  }
+  .header-inner { max-width: 1300px; margin: 0 auto; display: flex; align-items: center; gap: 14px; }
+  .logo-mark { width: 34px; height: 34px; background: var(--brand); border-radius: 7px; display: grid; place-items: center; font-size: 17px; flex-shrink: 0; }
+  .header-title { font-size: 16px; font-weight: 700; letter-spacing: -.3px; }
+  .header-sub   { font-size: 11px; color: var(--muted); margin-top: 1px; }
+
+  .toolbar {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 10px 24px; position: sticky; top: 0; z-index: 50;
+  }
+  .toolbar-inner { max-width: 1300px; margin: 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .tool-group { display: flex; align-items: center; gap: 5px; }
+  .tool-label { font-size: 10px; text-transform: uppercase; letter-spacing: .7px; color: var(--muted); white-space: nowrap; }
+
+  select, button, input[type="checkbox"] { font-family: var(--sans); font-size: 13px; border-radius: 6px; border: 1px solid var(--border); cursor: pointer; }
+  select {
+    background: var(--surface2); color: var(--text);
+    padding: 5px 26px 5px 9px; appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%237a9bb5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 7px center;
+  }
+  select:focus { outline: 2px solid var(--brand); outline-offset: 1px; }
+  .btn { padding: 5px 12px; background: var(--surface2); color: var(--text); font-weight: 500; transition: background .15s; }
+  .btn:hover { background: var(--border); }
+  .btn-primary { background: var(--brand); border-color: var(--brand); color: #fff; }
+  .btn-primary:hover { background: var(--brand-dk); }
+  .btn-danger  { background: #7f1d1d44; border-color: #ef444455; color: #fca5a5; }
+  .btn-danger:hover { background: #7f1d1d88; }
+  .sep { width: 1px; height: 22px; background: var(--border); margin: 0 3px; }
+  
+  .toggle-wrap { display: flex; align-items: center; gap: 6px; background: var(--surface2); padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border); }
+  .toggle-wrap label { font-size: 11px; cursor: pointer; color: var(--text); font-weight: 500; display: flex; align-items: center; gap: 6px; }
+
+  .lookup-wrap { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+  #lookupInput {
+    width: 68px; padding: 4px 8px;
+    background: var(--surface2); color: var(--text);
+    border: 1px solid var(--border); border-radius: 6px;
+    font-family: var(--mono); font-size: 13px; text-align: center;
+  }
+  #lookupInput:focus { outline: 2px solid var(--brand); }
+  .lookup-result { font-family: var(--mono); font-size: 11px; color: var(--muted); white-space: nowrap; }
+
+  .main { max-width: 1300px; margin: 0 auto; padding: 18px 24px 60px; }
+  .layout { display: grid; grid-template-columns: 1fr 310px; gap: 18px; align-items: start; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+
+  /* ── CHART ── */
+  .chart-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .chart-header {
+    padding: 9px 14px; background: var(--surface2); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .chart-header-title { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; }
+  .chart-scroll { overflow-x: auto; padding: 10px; }
+
+  table.fiber-table {
+    border-collapse: separate;
+    border-spacing: 2px;
+    font-size: 11px;
+    font-family: var(--mono);
+  }
+  table.fiber-table th {
+    font-size: 9px; text-transform: uppercase; letter-spacing: .4px;
+    color: var(--muted); padding: 3px 4px; white-space: nowrap;
+    font-weight: 600; text-align: center;
+  }
+  th.group-th { text-align: left; padding-left: 6px; }
+
+  /* ── FIBER CELL ── */
+  .fiber-cell {
+    width: 48px; height: 54px;
+    border-radius: 4px;
+    cursor: pointer;
+    position: relative;
+    text-align: center;
+    vertical-align: top;
+    border: 2px solid transparent;
+    transition: transform .1s, box-shadow .1s, border-color .1s;
+    overflow: hidden;
+    padding: 6px 2px 0;
+  }
+  .fiber-cell:hover { transform: scale(1.1); box-shadow: 0 4px 14px #0008; z-index: 5; }
+  .fiber-cell.selected { border-color: #fff !important; box-shadow: 0 0 0 2px #fff5; }
+  .fiber-cell.has-count { outline: 2px solid rgba(255,255,255,0.35); outline-offset: -2px; }
+  
+  .fiber-cell.is-dead {
+    filter: grayscale(80%);
+    opacity: 0.7;
+    outline: 1px dashed var(--muted);
+    outline-offset: -2px;
+  }
+
+  .fc-label {
+    font-size: 8.5px; font-weight: 700; line-height: 1;
+    display: block; width: 100%; text-align: center;
+    margin-bottom: 2px; color: var(--accent);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .fiber-cell.is-dead .fc-label { color: var(--text); opacity: 0.6; }
+
+  .fc-pos {
+    font-size: 13px; font-weight: 800; line-height: 1.1;
+    display: block; width: 100%; text-align: center;
+  }
+  .fc-count {
+    font-size: 9.5px; font-weight: 500; line-height: 1.1;
+    display: block; width: 100%; text-align: center;
+    opacity: 0.92;
+    border-top: 1px solid rgba(255,255,255,0.2);
+    padding-top: 1px;
+    margin-top: 1px;
+  }
+  .fc-count.empty { opacity: 0.3; font-size: 8px; }
+  .fc-cycle { position: absolute; bottom: 0; left: 0; right: 0; height: 5px; opacity: .8; }
+
+  .group-cell {
+    border-radius: 4px; padding: 3px 7px;
+    white-space: nowrap; font-size: 10px; font-weight: 700;
+    position: relative; overflow: hidden;
+    min-width: 100px; vertical-align: middle;
+  }
+  .group-cell-inner { position: relative; z-index: 1; line-height: 1.4; }
+  .group-cycle-bar { position: absolute; bottom: 0; left: 0; right: 0; height: 5px; opacity: .8; }
+
+  /* ── SIDEBAR ── */
+  .sidebar { display: flex; flex-direction: column; gap: 12px; }
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .panel-header {
+    background: var(--surface2); border-bottom: 1px solid var(--border);
+    padding: 8px 13px; font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .6px; color: var(--muted);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .panel-body { padding: 11px; }
+
+  .count-rows { display: flex; flex-direction: column; gap: 5px; }
+  .count-row {
+    display: grid;
+    grid-template-columns: 28px 1fr 58px 58px 26px;
+    gap: 4px; align-items: center;
+  }
+  .count-row-num { font-size: 10px; color: var(--muted); text-align: center; font-family: var(--mono); }
+  .count-row input {
+    padding: 5px 7px;
+    background: var(--bg); color: var(--text);
+    border: 1px solid var(--border); border-radius: 5px;
+    font-family: var(--mono); font-size: 12px;
+    width: 100%;
+  }
+  .count-row input:focus { outline: 2px solid var(--brand); outline-offset: 0; }
+  .count-row input.has-data  { border-color: var(--accent); }
+  .del-btn {
+    background: none; border: none; color: var(--muted);
+    font-size: 15px; cursor: pointer; border-radius: 4px;
+    padding: 2px 4px; line-height: 1;
+    transition: color .12s, background .12s;
+  }
+  .del-btn:hover { color: #fca5a5; background: #7f1d1d44; }
+
+  .count-row-header {
+    display: grid;
+    grid-template-columns: 28px 1fr 58px 58px 26px;
+    gap: 4px; margin-bottom: 2px;
+  }
+  .count-row-header span {
+    font-size: 9px; text-transform: uppercase; letter-spacing: .5px;
+    color: var(--muted); text-align: center;
+  }
+  .count-row-header span:nth-child(2) { text-align: left; padding-left: 7px; }
+
+  .count-actions { display: flex; gap: 6px; margin-top: 8px; }
+  .add-row-btn {
+    width: 100%; padding: 6px; margin-top: 6px;
+    background: var(--surface2); color: var(--muted);
+    border: 1px dashed var(--border); border-radius: 6px;
+    font-size: 12px; cursor: pointer; transition: color .15s, border-color .15s;
+    font-family: var(--sans);
+  }
+  .add-row-btn:hover { color: var(--text); border-color: var(--brand); }
+
+  .paste-toggle { font-size: 10px; color: var(--brand); cursor: pointer; text-decoration: underline; }
+  .paste-area { margin-top: 8px; display: none; }
+  .paste-area.open { display: block; }
+  textarea#countInput {
+    width: 100%; height: 100px;
+    background: var(--bg); color: var(--text);
+    border: 1px solid var(--border); border-radius: 6px;
+    padding: 7px 9px; font-family: var(--mono); font-size: 11px;
+    resize: vertical; line-height: 1.6;
+  }
+  textarea#countInput:focus { outline: 2px solid var(--brand); }
+  textarea#countInput::placeholder { color: var(--muted); }
+  .paste-hint { font-size: 10px; color: var(--muted); margin-top: 5px; line-height: 1.5; }
+  .paste-hint code { background: var(--surface2); border-radius: 3px; padding: 1px 4px; font-family: var(--mono); font-size: 10px; color: var(--accent); }
+
+  .assign-list { display: flex; flex-direction: column; gap: 3px; max-height: 260px; overflow-y: auto; }
+  .assign-row {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--surface2); border-radius: 5px;
+    padding: 5px 8px; font-size: 11px; animation: fadeIn .18s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; } }
+  .assign-swatch { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+  .assign-label { font-family: var(--mono); font-weight: 700; color: var(--accent); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .assign-range { color: var(--muted); font-family: var(--mono); font-size: 10px; white-space: nowrap; }
+  .assign-del { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 13px; line-height: 1; padding: 0 2px; border-radius: 3px; transition: color .1s; }
+  .assign-del:hover { color: #fca5a5; }
+  .assign-empty { font-size: 11px; color: var(--muted); text-align: center; padding: 16px 0; }
+
+  .legend-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; }
+  .legend-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; border: 1px solid #ffffff18; }
+
+  .modal-backdrop { position: fixed; inset: 0; background: #000a; display: none; place-items: center; z-index: 999; }
+  .modal-backdrop.open { display: grid; }
+  .modal {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px 22px; width: 300px;
+    box-shadow: 0 24px 60px #0009;
+  }
+  .modal h3 { font-size: 14px; margin-bottom: 5px; }
+  .modal p  { font-size: 11px; color: var(--muted); margin-bottom: 12px; }
+  .modal-fiber-info {
+    background: var(--surface2); border-radius: 7px; padding: 9px 11px;
+    margin-bottom: 12px; font-family: var(--mono); font-size: 11px;
+    display: flex; align-items: center; gap: 9px;
+  }
+  .modal-swatch { width: 26px; height: 26px; border-radius: 5px; flex-shrink: 0; }
+  .modal-fiber-detail { line-height: 1.7; }
+  .modal-fiber-detail span { color: var(--muted); }
+  .modal input[type=text], .modal input[type=number] {
+    width: 100%; padding: 7px 9px;
+    background: var(--bg); color: var(--text);
+    border: 1px solid var(--border); border-radius: 5px;
+    font-family: var(--mono); font-size: 13px; margin-bottom: 7px;
+  }
+  .modal input:focus { outline: 2px solid var(--brand); }
+  .modal-actions { display: flex; gap: 7px; }
+
+  .toast {
+    position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%);
+    background: var(--green); color: #052e16;
+    padding: 7px 16px; border-radius: 7px; font-size: 13px; font-weight: 600;
+    box-shadow: 0 4px 20px #0006; opacity: 0; pointer-events: none;
+    transition: opacity .22s; z-index: 9999;
+  }
+  .toast.show { opacity: 1; }
+
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: var(--surface); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo-mark">🔆</div>
+    <div>
+      <div class="header-title">Fiber Optic Color Chart Builder</div>
+      <div class="header-sub">TIA-598-D &nbsp;·&nbsp; Interactive count assignment</div>
+    </div>
+  </div>
+</header>
+
+<div class="toolbar">
+  <div class="toolbar-inner">
+    <div class="tool-group">
+      <span class="tool-label">Cable Size</span>
+      <select id="cableSize">
+        <option value="6">6</option><option value="12">12</option>
+        <option value="24">24</option><option value="36">36</option>
+        <option value="48">48</option><option value="72">72</option>
+        <option value="96">96</option><option value="144" selected>144</option>
+        <option value="216">216</option><option value="288">288</option>
+        <option value="432">432</option><option value="576">576</option>
+        <option value="864">864</option>
+      </select>
+    </div>
+    <div class="tool-group">
+      <span class="tool-label">Fibers/Ribbon</span>
+      <select id="fibersPerRibbon">
+        <option value="12" selected>12</option>
+        <option value="6">6</option>
+        <option value="16">16 (MPO)</option>
+        <option value="24">24</option>
+      </select>
+    </div>
+    <div class="sep"></div>
+    <div class="toggle-wrap">
+      <label title="Automatically aligns assignments to TIA-598-D color boundaries">
+        <input type="checkbox" id="alignToggle" checked> Color Sync
+      </label>
+    </div>
+    <div class="toggle-wrap">
+      <label title="Visually separate different labels with colored bars">
+        <input type="checkbox" id="colorSepToggle"> Color Sep
+      </label>
+    </div>
+    <div class="sep"></div>
+    <button class="btn btn-danger" id="clearBtn">Clear All</button>
+    <div class="sep"></div>
+    <div class="lookup-wrap">
+      <span class="tool-label">Lookup #</span>
+      <input type="number" id="lookupInput" min="1" placeholder="fiber #">
+      <span class="lookup-result" id="lookupResult">—</span>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="layout">
+    <div class="chart-wrap">
+      <div class="chart-header">
+        <span class="chart-header-title" id="chartTitle">144-fiber · 12 ribbons</span>
+        <span style="font-size:10px;color:var(--muted)">Top = fiber pos &nbsp;·&nbsp; Bottom = count &nbsp;·&nbsp; Click to assign</span>
+      </div>
+      <div class="chart-scroll">
+        <table class="fiber-table" id="fiberTable"></table>
+      </div>
+    </div>
+
+    <div class="sidebar">
+      <div class="panel">
+        <div class="panel-header">
+          <span>Count Assignments</span>
+          <span class="paste-toggle" id="pasteToggle">paste mode</span>
+        </div>
+        <div class="panel-body">
+          <div id="rowMode">
+            <div class="count-row-header">
+              <span>#</span><span>Label</span><span>Start #</span><span>End #</span><span></span>
+            </div>
+            <div class="count-rows" id="countRows"></div>
+            <button class="add-row-btn" id="addRowBtn">+ Add row</button>
+            <div class="count-actions">
+              <button class="btn btn-primary" id="applyBtn" style="flex:1">Apply to Chart</button>
+              <button class="btn" id="exampleBtn">Example</button>
+            </div>
+          </div>
+          <div class="paste-area" id="pasteArea">
+            <textarea id="countInput" placeholder="XD,1-6&#10;A,55-60&#10;XD,13-48"></textarea>
+            <div class="paste-hint">
+              <code>LABEL,N</code> single · <code>LABEL,N-M</code> range<br>
+              <code>XD</code>/<code>D</code> = dead (absolute pos) · others place in order<br>
+            </div>
+            <div class="count-actions" style="margin-top:8px">
+              <button class="btn btn-primary" id="pasteApplyBtn" style="flex:1">Apply</button>
+              <button class="btn" id="pasteExampleBtn">Example</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <span>Active Counts</span>
+          <span id="assignCount" style="color:var(--accent);font-size:10px">0</span>
+        </div>
+        <div class="panel-body" style="padding:7px">
+          <div class="assign-list" id="assignList">
+            <div class="assign-empty">No counts assigned yet.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">TIA-598-D Color Sequence</div>
+        <div class="panel-body">
+          <div class="legend-grid" id="legendGrid"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal">
+    <h3>Assign Count</h3>
+    <p>Enter a label and optional end fiber for a range.</p>
+    <div class="modal-fiber-info">
+      <div class="modal-swatch" id="modalSwatch"></div>
+      <div class="modal-fiber-detail" id="modalFiberDetail"></div>
+    </div>
+    <input type="text" id="modalLabelInput" placeholder="Label (e.g. a, XD, F037)" autocomplete="off">
+    <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center">
+      <span style="font-size:11px;color:var(--muted);white-space:nowrap;min-width:58px">End fiber:</span>
+      <input type="number" id="modalEndInput" placeholder="optional" style="flex:1;margin-bottom:0">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" id="modalAssign" style="flex:1">Assign</button>
+      <button class="btn" id="modalCancel">Cancel</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const TIA = [
+  { name: 'Blue',   bg: '#1565c0', fg: '#ffffff' },
+  { name: 'Orange', bg: '#e65100', fg: '#ffffff' },
+  { name: 'Green',  bg: '#2e7d32', fg: '#ffffff' },
+  { name: 'Brown',  bg: '#6d4c41', fg: '#ffffff' },
+  { name: 'Slate',  bg: '#607d8b', fg: '#ffffff' },
+  { name: 'White',  bg: '#eceff1', fg: '#263238' },
+  { name: 'Red',    bg: '#c62828', fg: '#ffffff' },
+  { name: 'Black',  bg: '#212121', fg: '#ffffff' },
+  { name: 'Yellow', bg: '#f9a825', fg: '#212121' },
+  { name: 'Violet', bg: '#6a1b9a', fg: '#ffffff' },
+  { name: 'Rose',   bg: '#e91e8c', fg: '#ffffff' },
+  { name: 'Aqua',   bg: '#0097a7', fg: '#ffffff' },
+];
+const CYCLE_COLORS = ['#1565c0','#e65100','#2e7d32','#c62828','#f9a825','#6a1b9a'];
+const LABEL_COLORS = ['#38bdf8', '#a3e635', '#f472b6', '#c084fc', '#fbbf24', '#2dd4bf', '#f87171', '#e879f9', '#4ade80', '#facc15'];
+
+const fiberColor = n => TIA[(n - 1) % 12];
+const groupColor = g => TIA[(g - 1) % 12];
+const cycleIdx   = g => Math.floor((g - 1) / 12);
+
+function getLabelColor(label) {
+  let l = label.trim().toLowerCase();
+  if (/^(xd|dead|cut dead|d)$/.test(l)) return 'var(--dead-fg)';
+  let hash = 0;
+  for(let i=0; i<l.length; i++) hash = l.charCodeAt(i) + ((hash << 5) - hash);
+  return LABEL_COLORS[Math.abs(hash) % LABEL_COLORS.length];
+}
+
+let cableSize     = 144;
+let fibersPerRibbon = 12;
+let assignments = {};
+let countRowData = [];
+
+const cableSizeEl     = document.getElementById('cableSize');
+const fibersPerRibbonEl = document.getElementById('fibersPerRibbon');
+const alignToggle     = document.getElementById('alignToggle');
+const colorSepToggle  = document.getElementById('colorSepToggle');
+const fiberTable      = document.getElementById('fiberTable');
+const chartTitle      = document.getElementById('chartTitle');
+const assignList      = document.getElementById('assignList');
+const assignCount     = document.getElementById('assignCount');
+const countRowsEl     = document.getElementById('countRows');
+const lookupInput     = document.getElementById('lookupInput');
+const lookupResult    = document.getElementById('lookupResult');
+const modalBackdrop   = document.getElementById('modalBackdrop');
+const modalSwatch     = document.getElementById('modalSwatch');
+const modalFiberDetail= document.getElementById('modalFiberDetail');
+const modalLabelInput = document.getElementById('modalLabelInput');
+const modalEndInput   = document.getElementById('modalEndInput');
+const toast           = document.getElementById('toast');
+let modalFiberNum = null;
+
+function validateRows(rows) {
+  let liveCounts = new Set();
+  let deadPos = new Set();
+  let isDead = l => /^(xd|dead|cut dead|d)$/i.test(l.trim());
+
+  for (let row of rows) {
+    if (!row.label) continue;
+    let start = parseInt(row.start);
+    let end = parseInt(row.end) || start;
+    if (isNaN(start)) continue;
+
+    let min = Math.min(start, end);
+    let max = Math.max(start, end);
+    
+    if (isDead(row.label)) {
+      for (let i = min; i <= max; i++) {
+        if (deadPos.has(i)) return `Dead fiber position ${i} is assigned multiple times.`;
+        deadPos.add(i);
+      }
+    } else {
+      for (let i = min; i <= max; i++) {
+        if (liveCounts.has(i)) return `Live count #${i} is duplicated (Check your overlaps around label "${row.label}").`;
+        liveCounts.add(i);
+      }
+    }
+  }
+  return null;
+}
+
+function validateAndApply() {
+  let error = validateRows(countRowData);
+  if (error) {
+    alert("⚠️ COUNT CONFLICT DETECTED\n\n" + error + "\n\nPlease correct this issue before applying.");
+    return false;
+  }
+  buildAndRender();
+  return true;
+}
+
+function buildAssignments(rows) {
+  assignments = {};
+  let cursor = 1;
+  const isDead = l => /^(xd|dead|cut dead|d)$/i.test(l.trim());
+  const align = alignToggle.checked;
+
+  // PASS 1: Lock down dead fibers (Absolute Positioning)
+  for (const row of rows) {
+    if (!row.label || !isDead(row.label)) continue;
+    const start = parseInt(row.start);
+    const end   = parseInt(row.end) || start;
+    if (isNaN(start)) continue;
+    const countStart = Math.min(start, end);
+    const countEnd   = Math.max(start, end);
+    for (let c = countStart; c <= countEnd; c++) {
+      if (c >= 1 && c <= cableSize) {
+        assignments[c] = { label: 'XD', count: 'XD', isDead: true };
+      }
+    }
+  }
+
+  // PASS 2: Route live counts around the dead zones
+  for (const row of rows) {
+    if (!row.label || isDead(row.label)) continue;
+    const start = parseInt(row.start);
+    const end   = parseInt(row.end) || start;
+    if (isNaN(start)) continue;
+    
+    const countStart = Math.min(start, end);
+    const count = Math.abs(end - start) + 1;
+
+    for (let i = 0; i < count; i++) {
+      const currentCount = countStart + i;
+
+      if (align) {
+        const targetColor = (currentCount - 1) % 12;
+        while (cursor <= cableSize && (assignments[cursor] || ((cursor - 1) % 12 !== targetColor))) {
+          cursor++;
+        }
+      } else {
+        while (assignments[cursor]) cursor++;
+      }
+
+      if (cursor <= cableSize) {
+        assignments[cursor] = { label: row.label, count: currentCount, isDead: false };
+        cursor++;
+      }
+    }
+  }
+}
+
+function renderChart() {
+  const fpt = fibersPerRibbon;
+  const numRibbons = Math.ceil(cableSize / fpt);
+  const showColorSep = colorSepToggle.checked;
+  chartTitle.textContent = `${cableSize}-fiber · ${numRibbons} ribbon${numRibbons > 1 ? 's' : ''} × ${fpt} fibers`;
+
+  let html = '<thead><tr><th class="group-th">Ribbon</th>';
+  for (let f = 1; f <= fpt; f++) {
+    const c = fiberColor(f);
+    html += `<th style="color:${c.bg}">${f}<br><span style="font-size:7px;opacity:.6">${c.name.slice(0,3)}</span></th>`;
+  }
+  html += '</tr></thead><tbody>';
+
+  for (let g = 1; g <= numRibbons; g++) {
+    const gc    = groupColor(g);
+    const cycle = cycleIdx(g);
+    const cycleColor = cycle > 0 ? CYCLE_COLORS[(cycle - 1) % CYCLE_COLORS.length] : null;
+    const fibersInRibbon = (g === numRibbons) ? (cableSize - (numRibbons - 1) * fpt) : fpt;
+
+    html += '<tr>';
+    html += `<td class="group-cell" style="background:${gc.bg};color:${gc.fg}">
+      <div class="group-cell-inner">
+        <div style="font-size:11px;font-weight:800">Ribbon ${g}</div>
+        <div style="font-size:9px;opacity:.85">${gc.name}</div>
+      </div>
+      ${cycleColor ? `<div class="group-cycle-bar" style="background:${cycleColor}"></div>` : ''}
+    </td>`;
+
+    for (let f = 1; f <= fpt; f++) {
+      const absNum = (g - 1) * fpt + f;
+      const fc     = fiberColor(f);
+      const asgn   = assignments[absNum];
+      const isActive = f <= fibersInRibbon;
+
+      if (isActive) {
+        const hasCount  = !!asgn;
+        const isDead    = hasCount && asgn.isDead;
+        const countDisp = hasCount ? (isDead ? 'XD' : asgn.count) : '·';
+        const labelDisp = hasCount ? (isDead ? 'XD' : asgn.label) : '';
+        const labelColor = hasCount ? (showColorSep ? getLabelColor(asgn.label) : 'var(--accent)') : '';
+        
+        let bgStyle = isDead ? 'var(--dead-bg)' : fc.bg;
+        let fgStyle = isDead ? 'var(--dead-fg)' : fc.fg;
+        let deadClass = isDead ? ' is-dead' : '';
+
+        // Add the top colored visual separator bar (only if toggled ON)
+        let topBar = (hasCount && !isDead && showColorSep) ? `<div style="position:absolute; top:0; left:0; right:0; height:4px; background:${getLabelColor(asgn.label)}; opacity:0.9"></div>` : '';
+
+        html += `<td class="fiber-cell${hasCount ? ' has-count' : ''}${deadClass}" data-fiber="${absNum}"
+          style="background:${bgStyle};color:${fgStyle}"
+          title="Fiber ${absNum} (${fc.name})${asgn ? ' · ' + asgn.label + ' #' + asgn.count : ''}">
+          ${topBar}
+          <span class="fc-label" style="color:${labelColor}">${escHtml(labelDisp)}</span>
+          <span class="fc-pos">${absNum}</span>
+          <span class="fc-count${hasCount ? '' : ' empty'}">${countDisp}</span>
+          ${cycleColor ? `<div class="fc-cycle" style="background:${cycleColor}"></div>` : ''}
+        </td>`;
+      } else {
+        html += `<td style="background:#1a2838;border-radius:4px;opacity:.15;width:48px;height:54px"></td>`;
+      }
+    }
+    html += '</tr>';
+  }
+  html += '</tbody>';
+  fiberTable.innerHTML = html;
+
+  fiberTable.querySelectorAll('.fiber-cell').forEach(cell => {
+    cell.addEventListener('click', () => openModal(parseInt(cell.dataset.fiber)));
+  });
+}
+
+function renderCountRows() {
+  if (countRowData.length === 0) countRowData = [{ label: '', start: '', end: '' }];
+  let html = '';
+  countRowData.forEach((row, i) => {
+    const hasData = row.label || row.start;
+    html += `<div class="count-row" data-idx="${i}">
+      <span class="count-row-num">${i + 1}</span>
+      <input class="inp-label${hasData ? ' has-data' : ''}" type="text" placeholder="Label" value="${escHtml(row.label)}" data-field="label" data-idx="${i}">
+      <input class="inp-start${hasData ? ' has-data' : ''}" type="number" placeholder="Start" value="${escHtml(row.start)}" data-field="start" data-idx="${i}" min="1">
+      <input class="inp-end${hasData ? ' has-data' : ''}"   type="number" placeholder="End"   value="${escHtml(row.end)}"   data-field="end"   data-idx="${i}" min="1">
+      <button class="del-btn" data-idx="${i}" title="Remove row">×</button>
+    </div>`;
+  });
+  countRowsEl.innerHTML = html;
+
+  countRowsEl.querySelectorAll('input').forEach(inp => {
+    inp.addEventListener('input', () => {
+      const idx = parseInt(inp.dataset.idx);
+      countRowData[idx][inp.dataset.field] = inp.value;
+      inp.classList.toggle('has-data', !!inp.value);
+    });
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('applyBtn').click(); });
+  });
+
+  countRowsEl.querySelectorAll('.del-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      countRowData.splice(parseInt(btn.dataset.idx), 1);
+      renderCountRows();
+      validateAndApply();
+    });
+  });
+}
+
+function buildAndRender() {
+  buildAssignments(countRowData);
+  renderChart();
+  renderAssignmentsList();
+  doLookup();
+}
+
+document.getElementById('addRowBtn').addEventListener('click', () => {
+  countRowData.push({ label: '', start: '', end: '' });
+  renderCountRows();
+  const rows = countRowsEl.querySelectorAll('.count-row');
+  if (rows.length) rows[rows.length - 1].querySelector('.inp-label').focus();
+});
+
+document.getElementById('applyBtn').addEventListener('click', () => {
+  countRowsEl.querySelectorAll('.count-row').forEach(row => {
+    const idx = parseInt(row.dataset.idx);
+    row.querySelectorAll('input').forEach(inp => countRowData[idx][inp.dataset.field] = inp.value);
+  });
+  if (validateAndApply()) {
+    showToast('Chart updated');
+  }
+});
+
+document.getElementById('exampleBtn').addEventListener('click', () => {
+  cableSizeEl.value = '48';
+  cableSize = 48;
+  countRowData = [
+    { label: 'xd', start: '1',  end: '6' },
+    { label: 'a',  start: '7', end: '12' },
+    { label: 'b',  start: '13', end: '18' },
+    { label: 'xd', start: '19', end: '24' }
+  ];
+  renderCountRows();
+  validateAndApply();
+});
+
+const pasteToggle = document.getElementById('pasteToggle');
+const pasteArea   = document.getElementById('pasteArea');
+const rowModeEl   = document.getElementById('rowMode');
+let pasteOpen = false;
+
+pasteToggle.addEventListener('click', () => {
+  pasteOpen = !pasteOpen;
+  pasteArea.classList.toggle('open', pasteOpen);
+  rowModeEl.style.display = pasteOpen ? 'none' : '';
+  pasteToggle.textContent = pasteOpen ? 'row mode' : 'paste mode';
+});
+
+document.getElementById('pasteApplyBtn').addEventListener('click', () => {
+  const raw = document.getElementById('countInput').value.trim();
+  if (!raw) { loadPasteExample(); return; }
+  applyPaste(raw);
+});
+
+document.getElementById('pasteExampleBtn').addEventListener('click', loadPasteExample);
+
+function loadPasteExample() {
+  cableSizeEl.value = '48';
+  cableSize = 48;
+  document.getElementById('countInput').value = `XD,1-6\nA,7-12\nB,13-18\nXD,19-24`;
+  applyPaste(document.getElementById('countInput').value);
+}
+
+function applyPaste(text) {
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  const newRows = [];
+
+  for (const line of lines) {
+    if (!line.includes(',')) {
+      const hm = line.match(/^(?:co|cable)?(\d+)/i);
+      if (hm) {
+        const n = parseInt(hm[1]);
+        if ([6,12,24,36,48,72,96,144,216,288,432,576,864].includes(n)) { cableSize = n; cableSizeEl.value = n; }
+      }
+      continue;
+    }
+    const m = line.match(/^(.+?),\s*(\d+)(?:\s*[-–]\s*(\d+))?/);
+    if (!m) continue;
+    newRows.push({ label: m[1].trim(), start: m[2], end: m[3] || m[2] });
+  }
+
+  if (newRows.length) {
+    const backupRows = [...countRowData];
+    countRowData = newRows;
+    if (validateAndApply()) {
+      renderCountRows();
+      showToast(`Applied ${newRows.length} entries`);
+    } else {
+      countRowData = backupRows;
+    }
+  }
+}
+
+function renderAssignmentsList() {
+  const showColorSep = colorSepToggle.checked;
+  const grouped = {};
+  for (const [fn, asgn] of Object.entries(assignments)) {
+    if (!grouped[asgn.label]) grouped[asgn.label] = { fibers: [], counts: [] };
+    grouped[asgn.label].fibers.push(parseInt(fn));
+    if (asgn.count !== 'XD') grouped[asgn.label].counts.push(asgn.count);
+  }
+
+  const entries = Object.entries(grouped);
+  assignCount.textContent = entries.length + ' label' + (entries.length !== 1 ? 's' : '');
+
+  if (!entries.length) {
+    assignList.innerHTML = '<div class="assign-empty">No counts assigned yet.</div>';
+    return;
+  }
+
+  let html = '';
+  for (const [label, data] of entries) {
+    const sortedFibers = data.fibers.sort((a,b) => a-b);
+    const sortedCounts = data.counts.sort((a,b) => a-b);
+    const fc = fiberColor(sortedFibers[0]);
+    const isDead = /^(xd|dead|cut dead|d)$/i.test(label);
+    const labelColor = isDead ? 'var(--text)' : (showColorSep ? getLabelColor(label) : 'var(--accent)');
+    
+    const fiberRange = compressRanges(sortedFibers);
+    const countRange = sortedCounts.length ? compressRanges(sortedCounts) : 'Dead';
+    html += `<div class="assign-row">
+      <div class="assign-swatch" style="background:${isDead ? 'var(--dead-bg)' : fc.bg}"></div>
+      <span class="assign-label" title="${escHtml(label)}" style="color:${labelColor}">${escHtml(label)}</span>
+      <span class="assign-range" title="Cable counts: ${escHtml(countRange)}">F${fiberRange}</span>
+      <button class="assign-del" data-label="${escHtml(label)}" title="Remove">×</button>
+    </div>`;
+  }
+  assignList.innerHTML = html;
+
+  assignList.querySelectorAll('.assign-del').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const lbl = btn.dataset.label;
+      countRowData = countRowData.filter(r => r.label !== lbl);
+      renderCountRows();
+      validateAndApply();
+      showToast(`Removed "${lbl}"`);
+    });
+  });
+}
+
+function renderLegend() {
+  document.getElementById('legendGrid').innerHTML = TIA.map((c, i) =>
+    `<div class="legend-item"><div class="legend-swatch" style="background:${c.bg}"></div><span>${i+1}. ${c.name}</span></div>`
+  ).join('');
+}
+
+function openModal(fiberNum) {
+  modalFiberNum = fiberNum;
+  const fc  = fiberColor(fiberNum);
+  const g   = Math.ceil(fiberNum / fibersPerRibbon);
+  const gc  = groupColor(g);
+  const pos = ((fiberNum - 1) % fibersPerRibbon) + 1;
+  const asgn = assignments[fiberNum];
+
+  modalSwatch.style.background = asgn && asgn.isDead ? 'var(--dead-bg)' : fc.bg;
+  modalFiberDetail.innerHTML =
+    `<span>Fiber</span> <strong>${fiberNum}</strong><br>` +
+    `<span>Ribbon</span> <strong>Ribbon ${g} (${gc.name})</strong><br>` +
+    `<span>Position</span> <strong>${pos} — ${fc.name}</strong>` +
+    (asgn ? `<br><span>Current</span> <strong>${escHtml(asgn.label)} #${asgn.count}</strong>` : '');
+
+  modalLabelInput.value = asgn ? asgn.label : '';
+  modalEndInput.value   = '';
+  modalBackdrop.classList.add('open');
+  setTimeout(() => modalLabelInput.focus(), 50);
+}
+
+function closeModal() { modalBackdrop.classList.remove('open'); modalFiberNum = null; }
+
+function doModalAssign() {
+  const label = modalLabelInput.value.trim();
+  if (!label || modalFiberNum === null) { closeModal(); return; }
+  const start   = modalFiberNum;
+  const endRaw  = parseInt(modalEndInput.value);
+  const end     = (!isNaN(endRaw) && endRaw >= start) ? Math.min(endRaw, cableSize) : start;
+
+  const existing = countRowData.findIndex(r => r.label === label);
+  const backupRows = JSON.parse(JSON.stringify(countRowData));
+  
+  if (existing >= 0) countRowData[existing].end = String(end);
+  else countRowData.push({ label, start: String(start), end: String(end) });
+  
+  let error = validateRows(countRowData);
+  if (error) {
+    alert("⚠️ CONFLICT:\n\n" + error);
+    countRowData = backupRows; 
+    return;
+  }
+  
+  renderCountRows();
+  buildAndRender();
+  closeModal();
+  showToast(`Assigned "${label}" → fiber${end > start ? 's ' + start + '–' + end : ' ' + start}`);
+}
+
+document.getElementById('modalAssign').addEventListener('click', doModalAssign);
+document.getElementById('modalCancel').addEventListener('click', closeModal);
+modalBackdrop.addEventListener('click', e => { if (e.target === modalBackdrop) closeModal(); });
+modalLabelInput.addEventListener('keydown', e => { if (e.key === 'Enter') modalEndInput.focus(); });
+modalEndInput.addEventListener('keydown',   e => { if (e.key === 'Enter') doModalAssign(); });
+
+document.getElementById('clearBtn').addEventListener('click', () => {
+  if (!Object.keys(assignments).length && !countRowData.some(r => r.label)) return;
+  if (!confirm('Clear all assignments?')) return;
+  assignments = {};
+  countRowData = [{ label: '', start: '', end: '' }];
+  document.getElementById('countInput').value = '';
+  renderCountRows();
+  renderChart();
+  renderAssignmentsList();
+  showToast('Cleared');
+});
+
+lookupInput.addEventListener('input', doLookup);
+function doLookup() {
+  const n = parseInt(lookupInput.value);
+  if (!n || n < 1 || n > cableSize) { lookupResult.textContent = '—'; return; }
+  const fc   = fiberColor(n);
+  const g    = Math.ceil(n / fibersPerRibbon);
+  const gc   = groupColor(g);
+  const pos  = ((n - 1) % fibersPerRibbon) + 1;
+  const asgn = assignments[n];
+  lookupResult.innerHTML =
+    `<span style="color:${asgn && asgn.isDead ? 'var(--dead-bg)' : fc.bg}">●</span> Ribbon ${g} ${gc.name} · pos ${pos} ${fc.name}` +
+    (asgn ? ` · <span style="color:var(--accent)">${escHtml(asgn.label)} #${asgn.count}</span>` : '');
+
+  fiberTable.querySelectorAll('.fiber-cell.selected').forEach(c => c.classList.remove('selected'));
+  const cell = fiberTable.querySelector(`.fiber-cell[data-fiber="${n}"]`);
+  if (cell) { cell.classList.add('selected'); cell.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+}
+
+cableSizeEl.addEventListener('change', () => { cableSize = parseInt(cableSizeEl.value); validateAndApply(); });
+fibersPerRibbonEl.addEventListener('change', () => { fibersPerRibbon = parseInt(fibersPerRibbonEl.value); validateAndApply(); });
+alignToggle.addEventListener('change', validateAndApply);
+colorSepToggle.addEventListener('change', () => { renderChart(); renderAssignmentsList(); });
+
+let toastTimer;
+function showToast(msg) {
+  toast.textContent = msg;
+  toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('show'), 2000);
+}
+
+function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function compressRanges(nums) {
+  if (!nums.length) return '';
+  const s = [...nums].sort((a,b) => a-b);
+  const out = [];
+  let a = s[0], b = s[0];
+  for (let i = 1; i < s.length; i++) {
+    if (s[i] === b + 1) { b = s[i]; }
+    else { out.push(a === b ? `${a}` : `${a}–${b}`); a = b = s[i]; }
+  }
+  out.push(a === b ? `${a}` : `${a}–${b}`);
+  return out.join(', ');
+}
+
+renderLegend();
+renderCountRows();
+renderChart();
+renderAssignmentsList();
+</script>
+</body>
+</html>
