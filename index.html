@@ -20,6 +20,7 @@
     --green:    #22c55e;
     --dead-bg:  #334155;
     --dead-fg:  #94a3b8;
+    --color-danger: #fca5a5;
     --mono:     'JetBrains Mono', 'Fira Mono', 'Cascadia Code', monospace;
     --sans:     'Inter', 'Segoe UI', system-ui, sans-serif;
   }
@@ -38,6 +39,7 @@
     --green:    #22c55e;
     --dead-bg:  #e2e8f0;
     --dead-fg:  #64748b;
+    --color-danger: red;
   }
 
   /* ── 2. BASE RESETS & TYPOGRAPHY ── */
@@ -46,8 +48,7 @@
 
   /* ── 3. HEADER ── */
   header {
-    background: linear-gradient(135deg, #0a1520 0%, #0d2035 60%, #0875be22 100%);
-    border-bottom: 1px solid var(--border);
+    background: var(--surface);
     padding: 16px 24px;
   }
   .header-inner { max-width: 1300px; margin: 0 auto; display: flex; align-items: center; gap: 14px; }
@@ -81,7 +82,7 @@
   .btn:hover { background: var(--border); }
   .btn-primary { background: var(--brand); border-color: var(--brand); color: #fff; }
   .btn-primary:hover { background: var(--brand-dk); }
-  .btn-danger  { background: #7f1d1d44; border-color: #ef444455; color: #fca5a5; }
+  .btn-danger  { background: #7f1d1d44; border-color: #ef444455; color: var(--color-danger); }
   .btn-danger:hover { background: #7f1d1d88; }
   .sep { width: 1px; height: 22px; background: var(--border); margin: 0 3px; } /* Vertical divider line */
   
@@ -135,6 +136,7 @@
   .fiber-cell {
     width: 48px; height: 54px;
     border-radius: 4px;
+    border: 20px solid var(--muted);
     cursor: pointer;
     position: relative;
     text-align: center;
@@ -252,6 +254,17 @@
   @keyframes fadeIn { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; } }
   .assign-swatch { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
   .assign-label { font-family: var(--mono); font-weight: 700; color: var(--accent); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  
+  /* ── NEW: CUSTOM COLOR ASSIGNMENT LABEL STYLES ── */
+  /* Adds a visual cue (dashed underline) to let users know the sidebar label can be clicked */
+  .assign-label.editable-label {
+    cursor: pointer;
+    text-decoration: underline dashed;
+    text-underline-offset: 3px;
+    transition: opacity 0.15s;
+  }
+  .assign-label.editable-label:hover { opacity: 0.7; }
+  
   .assign-range { color: var(--muted); font-family: var(--mono); font-size: 10px; white-space: nowrap; }
   .assign-del { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 13px; line-height: 1; padding: 0 2px; border-radius: 3px; transition: color .1s; }
   .assign-del:hover { color: #fca5a5; }
@@ -284,6 +297,25 @@
   }
   .modal input:focus { outline: 2px solid var(--brand); }
   .modal-actions { display: flex; gap: 7px; }
+
+  /* ── NEW: COLOR PICKER INPUT STYLES ── */
+  /* Strips standard browser weirdness away from the native <input type="color"> element */
+  .color-picker-input {
+    -webkit-appearance: none;
+    border: none;
+    width: 100%;
+    height: 50px;
+    border-radius: 8px;
+    cursor: pointer;
+    padding: 0;
+    background: none;
+    margin-bottom: 15px;
+  }
+  .color-picker-input::-webkit-color-swatch-wrapper { padding: 0; }
+  .color-picker-input::-webkit-color-swatch { 
+    border: 2px solid var(--border); 
+    border-radius: 8px; 
+  }
 
   /* Success pop-up at bottom of screen */
   .toast {
@@ -490,6 +522,21 @@
     </div>
   </div>
 </div>
+
+<div class="modal-backdrop" id="colorModalBackdrop">
+  <div class="modal">
+    <h3>Change Label Color</h3>
+    <p>Pick a custom color for the label: <strong id="colorModalLabelName" style="color:var(--text);"></strong></p>
+    
+    <input type="color" id="customColorInput" class="color-picker-input">
+    
+    <div class="modal-actions">
+      <button class="btn btn-primary" id="colorModalSave" style="flex:1">Save Color</button>
+      <button class="btn btn-danger" id="colorModalClear" title="Clear back to default color">Reset</button>
+      <button class="btn" id="colorModalCancel">Cancel</button>
+    </div>
+  </div>
+</div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -505,7 +552,7 @@ const TIA = [
   { name: 'White',  bg: '#eceff1', fg: '#263238' }, // 6 (Dark text on white)
   { name: 'Red',    bg: '#c62828', fg: '#ffffff' }, // 7
   { name: 'Black',  bg: '#212121', fg: '#ffffff' }, // 8
-  { name: 'Yellow', bg: '#f9a825', fg: '#212121' }, // 9 (Dark text on yellow)
+  { name: 'Yellow', bg: '#ffeb3b', fg: '#212121' }, // 9 (Dark text on yellow)
   { name: 'Violet', bg: '#6a1b9a', fg: '#ffffff' }, // 10
   { name: 'Rose',   bg: '#e91e8c', fg: '#ffffff' }, // 11
   { name: 'Aqua',   bg: '#0097a7', fg: '#ffffff' }, // 12
@@ -541,6 +588,9 @@ let assignments     = {};
 // countRowData holds the raw user inputs before we process them
 let countRowData    = [];
 
+// ── NEW: State variable to track custom user-selected colors by label name ──
+let customColors    = {}; 
+
 /* DOM Elements */
 const cableSizeEl     = document.getElementById('cableSize');
 const fibersPerRibbonEl = document.getElementById('fibersPerRibbon');
@@ -562,6 +612,15 @@ const modalLabelInput = document.getElementById('modalLabelInput');
 const modalEndInput   = document.getElementById('modalEndInput');
 const toast           = document.getElementById('toast');
 let modalFiberNum = null;
+
+// ── NEW: Custom Color Modal DOM Elements ──
+const colorModalBackdrop  = document.getElementById('colorModalBackdrop');
+const colorModalLabelName = document.getElementById('colorModalLabelName');
+const customColorInput    = document.getElementById('customColorInput');
+const colorModalSave      = document.getElementById('colorModalSave');
+const colorModalClear     = document.getElementById('colorModalClear');
+const colorModalCancel    = document.getElementById('colorModalCancel');
+let activeColorLabel      = null; // State tracker for which label we are actively coloring
 
 /* ── LOGIC: VALIDATION & CONFLICT CHECKING ── */
 /* Makes sure the user didn't do something stupid like mapping overlapping counts 
@@ -718,6 +777,7 @@ function renderChart() {
     const fibersInRibbon = (g === numRibbons) ? (cableSize - (numRibbons - 1) * fpt) : fpt;
 
     // Relative naming logic. e.g. Absolute Ribbon 35 might be "Green Tube, Ribbon 11"
+    // (This line remains completely untouched from the source file to preserve functionality)
     const relRibbon = useTubes ? ((g - 1) % ribbonsPerTube) + 1 : g;
     const ribbonLabel = useTubes 
       ? `<div style="font-size:11px;font-weight:800">Ribbon ${g}</div><div style="font-size:9px;opacity:.9">${TIA[currentTube].name.slice(0,3)} Ribbon-${relRibbon}</div>`
@@ -743,14 +803,37 @@ function renderChart() {
         const isDead    = hasCount && asgn.isDead;
         const countDisp = hasCount ? (isDead ? 'XD' : asgn.count) : '·';
         const labelDisp = hasCount ? (isDead ? 'XD' : asgn.label) : '';
-        const labelColor = hasCount ? (showColorSep ? getLabelColor(asgn.label) : 'var(--accent)') : '';
+        
+        // ── NEW: CALCULATE CUSTOM COLORS DURING RENDER ──
+        let labelColor = '';
+        let topBarBg = '';
+
+        if (hasCount) {
+          if (isDead) {
+            // Dead fibers always get forced to gray text, ignoring user custom colors
+            labelColor = 'var(--text)'; 
+          } else {
+            // Standard Custom Color Override Logic
+            const customCol = customColors[asgn.label];
+            
+            // Priority: User's Custom Color -> Hashed Color Sep Color -> Default Orange
+            labelColor = customCol ? customCol : (showColorSep ? getLabelColor(asgn.label) : 'var(--accent)');
+            
+            // Top bar background determination
+            if (customCol) {
+              topBarBg = customCol; // If they set a custom color, force the bar to appear
+            } else if (showColorSep) {
+              topBarBg = getLabelColor(asgn.label); // Or if they toggle the setting on
+            }
+          }
+        }
         
         let bgStyle = isDead ? 'var(--dead-bg)' : fc.bg;
         let fgStyle = isDead ? 'var(--dead-fg)' : fc.fg;
         let deadClass = isDead ? ' is-dead' : '';
         
-        // This makes the tiny hashed color bar at the top of the cell for quick visual parsing
-        let topBar = (hasCount && !isDead && showColorSep) ? `<div style="position:absolute; top:0; left:0; right:0; height:4px; background:${getLabelColor(asgn.label)}; opacity:0.9"></div>` : '';
+        // Inject the tiny hashed color bar at the top of the cell
+        let topBar = (topBarBg) ? `<div style="position:absolute; top:0; left:0; right:0; height:4px; background:${topBarBg}; opacity:0.9"></div>` : '';
 
         // Inject the exact <td> HTML for this specific fiber strand
         html += `<td class="fiber-cell${hasCount ? ' has-count' : ''}${deadClass}" data-fiber="${absNum}"
@@ -947,21 +1030,32 @@ function renderAssignmentsList() {
     const sortedFibers = data.fibers.sort((a,b) => a-b);
     const sortedCounts = data.counts.sort((a,b) => a-b);
     const fc = fiberColor(sortedFibers[0]);
+    
+    // ── NEW: SIDEBAR COLOR SYNC ──
     const isDead = /^(xd|dead|cut dead|d)$/i.test(label);
-    const labelColor = isDead ? 'var(--text)' : (showColorSep ? getLabelColor(label) : 'var(--accent)');
+    const customCol = customColors[label];
+    const labelColor = isDead ? 'var(--text)' : (customCol || (showColorSep ? getLabelColor(label) : 'var(--accent)'));
     
     // Call macro utility to hyphenate contiguous numbers
     const fiberRange = compressRanges(sortedFibers);
     const countRange = sortedCounts.length ? compressRanges(sortedCounts) : 'Dead';
     
+    // ── NEW: The class "editable-label" is attached here to enable clicking ──
     html += `<div class="assign-row">
       <div class="assign-swatch" style="background:${isDead ? 'var(--dead-bg)' : fc.bg}"></div>
-      <span class="assign-label" title="${escHtml(label)}" style="color:${labelColor}">${escHtml(label)}</span>
+      <span class="assign-label editable-label" data-label="${escHtml(label)}" title="Click to change color" style="color:${labelColor}">${escHtml(label)}</span>
       <span class="assign-range" title="Cable counts: ${escHtml(countRange)}">F${fiberRange}</span>
       <button class="assign-del" data-label="${escHtml(label)}" title="Remove">×</button>
     </div>`;
   }
   assignList.innerHTML = html;
+  
+  // ── NEW: BIND CLICK LISTENERS TO SPAWN COLOR MODAL ──
+  assignList.querySelectorAll('.editable-label').forEach(lbl => {
+    lbl.addEventListener('click', () => {
+      openColorModal(lbl.dataset.label);
+    });
+  });
 
   // Let them hit X in the panel to instantly blow away an assignment
   assignList.querySelectorAll('.assign-del').forEach(btn => {
@@ -1040,11 +1134,73 @@ modalBackdrop.addEventListener('click', e => { if (e.target === modalBackdrop) c
 modalLabelInput.addEventListener('keydown', e => { if (e.key === 'Enter') modalEndInput.focus(); });
 modalEndInput.addEventListener('keydown',   e => { if (e.key === 'Enter') doModalAssign(); });
 
+/* ── NEW: CUSTOM COLOR POP-UP LOGIC ── */
+// Logic to handle changing the color of labels inside the sidebar
+
+function openColorModal(label) {
+  // Prevent styling dead fibers (as they need to remain gray per standards)
+  if (/^(xd|dead|cut dead|d)$/i.test(label)) {
+    showToast("Dead fiber color cannot be changed.");
+    return;
+  }
+  
+  activeColorLabel = label;
+  colorModalLabelName.textContent = label;
+  
+  // Compute default start color for the wheel
+  let defaultColor = customColors[label];
+  if (!defaultColor && colorSepToggle.checked) defaultColor = getLabelColor(label);
+  
+  // HTML <input type="color"> MUST have a 7-character hex string (e.g. #ff0000)
+  // If we lack a valid hex, fallback to standard orange so the wheel works properly.
+  if (!defaultColor || !/^#[0-9A-F]{6}$/i.test(defaultColor)) {
+    defaultColor = '#f97316';
+  }
+  
+  customColorInput.value = defaultColor;
+  colorModalBackdrop.classList.add('open');
+}
+
+function closeColorModal() {
+  colorModalBackdrop.classList.remove('open');
+  activeColorLabel = null;
+}
+
+// Event: Save button clicked
+colorModalSave.addEventListener('click', () => {
+  if (activeColorLabel) {
+    customColors[activeColorLabel] = customColorInput.value;
+    renderChart(); // Redraw chart blocks with new custom color
+    renderAssignmentsList(); // Redraw sidebar
+    showToast(`Color saved for "${activeColorLabel}"`);
+  }
+  closeColorModal();
+});
+
+// Event: Reset button clicked (Wipes custom color back to defaults)
+colorModalClear.addEventListener('click', () => {
+  if (activeColorLabel && customColors[activeColorLabel]) {
+    delete customColors[activeColorLabel]; // Wipes memory state
+    renderChart();
+    renderAssignmentsList();
+    showToast(`Color reset for "${activeColorLabel}"`);
+  }
+  closeColorModal();
+});
+
+// Window/Cancel bindings for color modal
+colorModalCancel.addEventListener('click', closeColorModal);
+colorModalBackdrop.addEventListener('click', e => { if (e.target === colorModalBackdrop) closeColorModal(); });
+
+
 /* Standard Data Wipes */
 document.getElementById('clearBtn').addEventListener('click', () => {
   if (!Object.keys(assignments).length && !countRowData.some(r => r.label)) return;
   if (!confirm('Clear all assignments?')) return;
+  
   assignments = {};
+  customColors = {}; // ── NEW: Wipes custom colors on global reset ──
+  
   countRowData = [{ label: '', start: '', end: '' }];
   document.getElementById('countInput').value = '';
   renderCountRows();
