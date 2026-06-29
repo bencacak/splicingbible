@@ -189,13 +189,37 @@
   
   .fiber-cell.is-dead { filter: grayscale(80%); opacity: 0.75; outline: 1px dashed var(--muted); outline-offset: -2px; }
 
+  /* * ── READABILITY UPGRADE ──
+   * Changed from display:block to display:inline-block so the background wraps the text tightly like a badge.
+   * Added a background pill utilizing var(--surface) to ensure readability against any background color.
+   * Added a subtle text-shadow and border to make it pop.
+   */
   .fc-label {
-    font-size: 8.5px; font-weight: 800; line-height: 1;
-    display: block; width: 100%; text-align: center;
+    font-size: 8.5px; font-weight: 800; line-height: 1.2;
+    display: inline-block; max-width: 100%; text-align: center;
     margin-bottom: 2px; color: var(--accent);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
+    
+    /* NEW: Readability enhancements */
+    background: var(--surface); /* Subtle background pill matching the active theme */
+    padding: 1px 4px; /* Space around the text inside the pill */
+    border-radius: 4px; /* Rounded corners for the pill */
+    box-shadow: 0 1px 3px rgba(0,0,0,0.5); /* Drop shadow to separate from cell background */
+    border: 1px solid rgba(255,255,255,0.08); /* Tiny highlight edge */
   }
-  .fiber-cell.is-dead .fc-label { color: var(--text); opacity: 0.6; }
+  
+  /* Reset label styling for dead fibers since they don't need the contrast pill */
+  .fiber-cell.is-dead .fc-label { 
+    color: var(--text); opacity: 0.6; 
+    background: transparent; box-shadow: none; border: none; padding: 0;
+  }
+  
+  /* Adjust the shadow for Light Theme to be softer */
+  [data-theme="light"] .fc-label {
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    border: 1px solid rgba(0,0,0,0.05);
+  }
+  [data-theme="light"] .fiber-cell.is-dead .fc-label { box-shadow: none; border: none; }
 
   .fc-count {
     font-size: 13.5px; font-weight: 800; line-height: 1.1; 
@@ -399,8 +423,6 @@
     [data-theme="dark"] { display: none; } 
     .chart-cell.is-dead { filter: grayscale(100%); }
     .fiber-cell, .group-cell, .legend-swatch, .assign-swatch, .modal-swatch { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    header, .toolbar, .sidebar, .modal-backdrop, .toast { display: none !important; }
-    /* In the @media print block, update the hidden elements line: */
     header, .toolbar, .sidebar, .modal-backdrop, .toast, .footer { display: none !important; }
     .main { padding: 0 !important; max-width: none !important; }
     .layout { display: block !important; }
@@ -667,6 +689,24 @@ function getLabelColor(label) {
   return LABEL_COLORS[Math.abs(hash) % LABEL_COLORS.length];
 }
 
+/**
+ * ── NEW: AUTOMATIC T-LABEL COLOR ASSIGNMENT ──
+ * Checks if the given label matches the pattern "T" followed by a number (1-99).
+ * e.g., T1, T11, T45
+ * If it matches, it maps that number back to the standard TIA color array.
+ */
+function getAutomaticLabelColor(label) {
+  if (!label) return null;
+  // Regex looks for string starting with 'T' or 't', followed by 1 or 2 digits, reaching the end.
+  const match = label.trim().match(/^t([1-9][0-9]?)$/i);
+  if (match) {
+    const num = parseInt(match[1], 10); // Grab the digits
+    const colorIdx = (num - 1) % 12;    // Calculate index from 0 to 11
+    return TIA[colorIdx].bg;            // Return the hex color from TIA array
+  }
+  return null; // Return null if it doesn't match the criteria
+}
+
 /* ── STATE VARIABLES ── */
 let cableSize       = 144;
 let fibersPerRibbon = 12;
@@ -904,10 +944,20 @@ function renderChart() {
             labelColor = 'var(--text)'; 
           } else {
             const customCol = customColors[asgn.label];
-            labelColor = customCol ? customCol : (showColorSep ? getLabelColor(asgn.label) : 'var(--accent)');
-            
-            if (customCol) { topBarBg = customCol; } 
-            else if (showColorSep) { topBarBg = getLabelColor(asgn.label); }
+            const autoCol = getAutomaticLabelColor(asgn.label);
+
+            if (customCol) {
+              labelColor = customCol;
+              topBarBg = customCol;
+            } else if (autoCol) {
+              labelColor = autoCol;  
+              topBarBg = autoCol; 
+            } else if (showColorSep) {
+              labelColor = getLabelColor(asgn.label);
+              topBarBg = labelColor;
+            } else {
+              labelColor = 'var(--accent)'; 
+            }
           }
         }
         
@@ -915,7 +965,9 @@ function renderChart() {
         let fgStyle = isDead ? 'var(--dead-fg)' : fc.fg;
         let deadClass = isDead ? ' is-dead' : '';
         
-        let topBar = (topBarBg) ? `<div style="position:absolute; top:0; left:0; right:0; height:4px; background:${topBarBg}; opacity:0.9"></div>` : '';
+        // ── NEW LOGIC MODIFICATION ── 
+        // We only render the HTML for the topBar if BOTH a topBarBg is set AND the showColorSep toggle is active.
+        let topBar = (topBarBg && showColorSep) ? `<div style="position:absolute; top:0; left:0; right:0; height:4px; background:${topBarBg}; opacity:0.9"></div>` : '';
 
         html += `<td class="fiber-cell${hasCount ? ' has-count' : ''}${deadClass}" data-fiber="${absNum}"
           style="background:${bgStyle};color:${fgStyle}"
@@ -995,8 +1047,8 @@ document.getElementById('exampleBtn').addEventListener('click', () => {
   updateTogglesAndParseSize();
   countRowData = [
     { label: 'xd', start: '1',  end: '6' },
-    { label: 'a',  start: '7', end: '12' },
-    { label: 'b',  start: '13', end: '18' },
+    { label: 'T2',  start: '7', end: '12' },
+    { label: 'T11',  start: '13', end: '18' },
     { label: 'xd', start: '19', end: '24' }
   ];
   renderCountRows();
@@ -1027,7 +1079,7 @@ document.getElementById('pasteExampleBtn').addEventListener('click', loadPasteEx
 function loadPasteExample() {
   cableSizeEl.value = '48';
   updateTogglesAndParseSize();
-  document.getElementById('countInput').value = `XD,1-6\nA,7-12\nB,13-18\nXD,19-24`;
+  document.getElementById('countInput').value = `XD,1-6\nT2,7-12\nT11,13-18\nXD,19-24`;
   applyPaste(document.getElementById('countInput').value);
 }
 
@@ -1093,8 +1145,11 @@ function renderAssignmentsList() {
     const fc = fiberColor(sortedFibers[0]);
     
     const isDead = /^(xd|dead|cut dead|d)$/i.test(label);
+    
+    // NEW LOGIC: Also support automatic "T" colors here in the side panel list
     const customCol = customColors[label];
-    const labelColor = isDead ? 'var(--text)' : (customCol || (showColorSep ? getLabelColor(label) : 'var(--accent)'));
+    const autoCol = getAutomaticLabelColor(label);
+    const labelColor = isDead ? 'var(--text)' : (customCol || autoCol || (showColorSep ? getLabelColor(label) : 'var(--accent)'));
     
     const fiberRange = compressRanges(sortedFibers);
     const countRange = sortedCounts.length ? compressRanges(sortedCounts) : 'Dead';
@@ -1192,7 +1247,9 @@ function openColorModal(label) {
   activeColorLabel = label;
   colorModalLabelName.textContent = label;
   
+  // Try to default the color picker to whatever color is currently applied
   let defaultColor = customColors[label];
+  if (!defaultColor) defaultColor = getAutomaticLabelColor(label);
   if (!defaultColor && colorSepToggle.checked) defaultColor = getLabelColor(label);
   if (!defaultColor || !/^#[0-9A-F]{6}$/i.test(defaultColor)) defaultColor = '#f97316';
   
