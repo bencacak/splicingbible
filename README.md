@@ -38,7 +38,7 @@ Drop in a fiber count (6 to 1728 fibers), assign splice count labels to fiber po
 open index.html
 ```
 
-Assign counts in the sidebar panel, press **Apply to Chart**, then export. See the **[full documentation](YOUR_DOCS_LINK_HERE)** for a complete walkthrough.
+Assign counts in the sidebar panel, press **Apply to Chart**, then export. See the **[full documentation](https://bencacak.github.io/splicingbible/docs.html)** for a complete walkthrough.
 
 ## Standard Reference
 
