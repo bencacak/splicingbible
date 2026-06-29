@@ -1,0 +1,1766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Documentation — Fiber Optic Color Chart Builder</title>
+<style>
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     1. GLOBAL CSS VARIABLES (THEMING)
+     Identical to the main app so both pages feel like the same product.
+     Toggle between dark (default) and light by setting data-theme="light"
+     on <html>. All colors are consumed via var(--...) throughout.
+  ═══════════════════════════════════════════════════════════════════════ */
+  :root {
+    --brand:    #0875BE;
+    --brand-dk: #055a94;
+    --bg:       #0f1923;
+    --surface:  #16232f;
+    --surface2: #1e3040;
+    --border:   #2a4258;
+    --text:     #e8f0f7;
+    --muted:    #7a9bb5;
+    --accent:   #f97316;
+    --green:    #22c55e;
+    --dead-bg:  #334155;
+    --dead-fg:  #94a3b8;
+    --color-danger: #fca5a5;
+    --mono:     'JetBrains Mono', 'Fira Mono', 'Cascadia Code', monospace;
+    --sans:     'Inter', 'Segoe UI', system-ui, sans-serif;
+  }
+
+  [data-theme="light"] {
+    --brand:    #0ea5e9;
+    --brand-dk: #0284c7;
+    --bg:       #f8fafc;
+    --surface:  #ffffff;
+    --surface2: #f1f5f9;
+    --border:   #cbd5e1;
+    --text:     #0f172a;
+    --muted:    #64748b;
+    --accent:   #0875BE;
+    --green:    #16a34a;
+    --dead-bg:  #e2e8f0;
+    --dead-fg:  #64748b;
+    --color-danger: #ef4444;
+  }
+
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     2. BASE RESETS & TYPOGRAPHY
+     Same box-sizing reset and font stack as the main app.
+  ═══════════════════════════════════════════════════════════════════════ */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.7;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  /* Smooth anchor scrolling — makes in-page navigation feel polished */
+  html { scroll-behavior: smooth; }
+
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     3. HEADER  (copied 1-to-1 from main app)
+     Logo mark + title + subtitle — identical markup structure.
+  ═══════════════════════════════════════════════════════════════════════ */
+  header {
+    background: var(--surface);
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+  }
+
+  .header-inner {
+    max-width: 1300px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .logo-mark {
+    width: 34px; height: 34px;
+    background: var(--brand);
+    border-radius: 8px;
+    display: grid;
+    place-items: center;
+    font-size: 17px;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(8, 117, 190, 0.3);
+  }
+
+  .header-title { font-size: 16px; font-weight: 700; letter-spacing: -.3px; }
+  .header-sub   { font-size: 11px; color: var(--muted); margin-top: 1px; }
+
+  /* Navigation pill group in the header — links back to the app and to sections */
+  .header-nav {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .header-nav a {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    text-decoration: none;
+    padding: 5px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
+    white-space: nowrap;
+  }
+
+  .header-nav a:hover { color: var(--text); border-color: var(--brand); }
+
+  /* The "← Back to App" link uses brand color to stand out */
+  .header-nav a.btn-primary {
+    background: var(--brand);
+    border-color: var(--brand);
+    color: #fff;
+  }
+
+  .header-nav a.btn-primary:hover { background: var(--brand-dk); }
+
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     4. TWO-COLUMN PAGE LAYOUT
+     Left: sticky sidebar navigation. Right: scrollable doc content.
+     Collapses to single column on narrow viewports.
+  ═══════════════════════════════════════════════════════════════════════ */
+  .page-layout {
+    max-width: 1300px;
+    margin: 0 auto;
+    padding: 32px 24px 80px;
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 40px;
+    align-items: start;
+  }
+
+  /* Collapse sidebar below content on small screens */
+  @media (max-width: 860px) {
+    .page-layout {
+      grid-template-columns: 1fr;
+    }
+    .doc-nav { display: none; } /* hide sidebar on mobile to save space */
+  }
+
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     5. STICKY SIDEBAR NAVIGATION
+     Uses the same panel/surface visual language as the app's sidebar.
+  ═══════════════════════════════════════════════════════════════════════ */
+  .doc-nav {
+    position: sticky;
+    top: 24px;                /* gap from top of viewport when sticky */
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.04);
+    transition: background-color 0.3s, border-color 0.3s;
+  }
+
+  .doc-nav-header {
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 14px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .8px;
+    color: var(--muted);
+    transition: background-color 0.3s, border-color 0.3s;
+  }
+
+  /* Navigation link list — no bullets, each link is a full-width block */
+  .doc-nav ul { list-style: none; padding: 8px 0; }
+
+  .doc-nav li a {
+    display: block;
+    padding: 7px 16px;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--muted);
+    text-decoration: none;
+    transition: color 0.15s, background 0.15s;
+  }
+
+  .doc-nav li a:hover {
+    color: var(--text);
+    background: var(--surface2);
+  }
+
+  /* Highlight the active nav item (set via JS scroll observer) */
+  .doc-nav li a.active {
+    color: var(--brand);
+    font-weight: 700;
+    background: var(--surface2);
+    border-left: 2px solid var(--brand);
+  }
+
+  /* Sub-items are indented and slightly smaller */
+  .doc-nav li.sub a {
+    padding-left: 28px;
+    font-size: 11.5px;
+  }
+
+  /* Theme toggle tucked at the bottom of the nav sidebar */
+  .nav-footer {
+    padding: 10px 14px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--muted);
+  }
+
+  /* ── Toggle switch (identical to main app) ── */
+  input[type="checkbox"].toggle-switch {
+    appearance: none; -webkit-appearance: none;
+    width: 32px; height: 18px;
+    background: var(--muted); opacity: 0.5;
+    border-radius: 20px; position: relative; cursor: pointer; outline: none;
+    border: none; flex-shrink: 0;
+    transition: background 0.2s, opacity 0.2s;
+  }
+
+  input[type="checkbox"].toggle-switch::after {
+    content: '';
+    position: absolute; top: 2px; left: 2px;
+    width: 14px; height: 14px;
+    background: #fff; border-radius: 50%;
+    transition: transform 0.2s cubic-bezier(0.4, 0.0, 0.2, 1);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  }
+
+  input[type="checkbox"].toggle-switch:checked { background: var(--brand); opacity: 1; }
+  input[type="checkbox"].toggle-switch:checked::after { transform: translateX(14px); }
+
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     6. DOCUMENTATION CONTENT AREA
+     Long-form prose styling. Sections scroll past the sticky nav.
+  ═══════════════════════════════════════════════════════════════════════ */
+  .doc-content { min-width: 0; /* prevents grid blowout on small screens */ }
+
+  /* Each major section is separated by generous vertical space */
+  .doc-section { margin-bottom: 56px; }
+
+  /* Section anchors sit slightly above their actual heading so the sticky
+     header doesn't cover them when you click a nav link */
+  .doc-section[id] { scroll-margin-top: 24px; }
+
+
+  /* ── Headings ── */
+  h1.doc-title {
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -.5px;
+    margin-bottom: 8px;
+    line-height: 1.2;
+  }
+
+  /* Colored accent word in the main title */
+  h1.doc-title span { color: var(--brand); }
+
+  .doc-subtitle {
+    font-size: 15px;
+    color: var(--muted);
+    margin-bottom: 32px;
+    line-height: 1.6;
+  }
+
+  h2.section-heading {
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: -.2px;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  /* Icon badge next to each section heading — matches the app's icon buttons */
+  h2.section-heading .icon {
+    width: 28px; height: 28px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    display: grid;
+    place-items: center;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  h3.sub-heading {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--accent);
+    margin-top: 22px;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+  }
+
+  /* Body prose */
+  .doc-content p {
+    font-size: 13.5px;
+    color: var(--text);
+    margin-bottom: 12px;
+    line-height: 1.75;
+  }
+
+  .doc-content p:last-child { margin-bottom: 0; }
+
+  /* Inline code spans — same style as the paste-hint code in the app */
+  code {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--accent);
+  }
+
+  /* Multi-line code blocks */
+  pre {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    margin: 14px 0;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.7;
+    color: var(--text);
+  }
+
+  pre code {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: inherit;
+    color: inherit;
+  }
+
+  /* Comment lines inside code blocks rendered dimmer */
+  .comment { color: var(--muted); font-style: italic; }
+
+  /* Keyword highlight */
+  .kw { color: var(--brand); font-weight: 700; }
+
+  /* Value highlight */
+  .val { color: var(--green); }
+
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     7. STEP-BY-STEP CARDS
+     Used in the Quick Start section. Each step is a numbered card.
+  ═══════════════════════════════════════════════════════════════════════ */
+  .steps { display: flex; flex-direction: column; gap: 12px; margin-top: 16px; }
+
+  .step-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    transition: border-color 0.2s;
+  }
+
+  .step-card:hover { border-color: var(--brand); }
+
+  /* Circular step number badge — uses brand blue for emphasis */
+  .step-num {
+    width: 28px; height: 28px;
+    background: var(--brand);
+    color: #fff;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 12px;
+    font-weight: 800;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .step-body { flex: 1; }
+
+  .step-title {
+    font-size: 13.5px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  .step-desc {
+    font-size: 12.5px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     8. FEATURE GRID
+     Two-column card layout used to showcase toggles / controls.
+  ═══════════════════════════════════════════════════════════════════════ */
+  .feature-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 14px;
+  }
+
+  @media (max-width: 640px) { .feature-grid { grid-template-columns: 1fr; } }
+
+  .feature-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    transition: border-color 0.2s;
+  }
+
+  .feature-card:hover { border-color: var(--brand); }
+
+  .feature-title {
+    font-size: 12.5px;
+    font-weight: 700;
+    margin-bottom: 5px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  /* Tag pills to label toggle type (ON/OFF, toggle etc.) */
+  .tag {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 20px;
+    font-size: 9.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+  }
+
+  .tag-toggle { background: rgba(8, 117, 190, 0.15); color: var(--brand); }
+  .tag-select { background: rgba(249, 115, 22, 0.15); color: var(--accent); }
+  .tag-input  { background: rgba(34, 197, 94, 0.15);  color: var(--green); }
+  .tag-action { background: rgba(122, 155, 181, 0.2); color: var(--muted); }
+
+  .feature-desc {
+    font-size: 11.5px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     9. TIA-598-D COLOR SWATCH TABLE
+     Visual reference block — mirrors the app's legend grid style.
+  ═══════════════════════════════════════════════════════════════════════ */
+  .color-table {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    gap: 6px;
+    margin: 14px 0;
+  }
+
+  .color-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 7px 10px;
+    font-size: 11.5px;
+    font-weight: 600;
+    font-family: var(--mono);
+  }
+
+  .color-swatch {
+    width: 18px; height: 18px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    border: 1px solid rgba(255,255,255,0.1);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  }
+
+  /* Position number badge on the swatch */
+  .color-pos {
+    font-size: 9px;
+    color: var(--muted);
+    margin-left: auto;
+    font-family: var(--mono);
+  }
+
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     10. CALLOUT / NOTICE BOXES
+     Info, warning, and tip boxes styled to match the modal alerts in the app.
+  ═══════════════════════════════════════════════════════════════════════ */
+  .callout {
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 12.5px;
+    line-height: 1.65;
+    margin: 14px 0;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+
+  .callout-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+
+  /* Info callout — brand blue palette */
+  .callout-info {
+    background: rgba(8, 117, 190, 0.1);
+    border: 1px solid rgba(8, 117, 190, 0.3);
+    color: var(--text);
+  }
+
+  /* Warning callout — accent orange palette */
+  .callout-warn {
+    background: rgba(249, 115, 22, 0.1);
+    border: 1px solid rgba(249, 115, 22, 0.3);
+    color: var(--text);
+  }
+
+  /* Tip callout — green palette */
+  .callout-tip {
+    background: rgba(34, 197, 94, 0.08);
+    border: 1px solid rgba(34, 197, 94, 0.25);
+    color: var(--text);
+  }
+
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     11. DATA TABLE  (keyboard / reference tables)
+     Standard bordered table using CSS variables for theming.
+  ═══════════════════════════════════════════════════════════════════════ */
+  .ref-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 12.5px;
+    margin: 14px 0;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden; /* clip to border-radius */
+  }
+
+  .ref-table th {
+    background: var(--surface2);
+    padding: 8px 12px;
+    text-align: left;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+
+  .ref-table td {
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+    color: var(--text);
+    line-height: 1.5;
+  }
+
+  /* Remove border from last row */
+  .ref-table tr:last-child td { border-bottom: none; }
+
+  /* Zebra stripe for easier row scanning */
+  .ref-table tbody tr:nth-child(even) td { background: var(--surface2); }
+
+  /* Code-style cells */
+  .ref-table td:first-child { font-family: var(--mono); font-weight: 600; color: var(--accent); }
+
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     12. TOAST  (success notification — same as main app)
+  ═══════════════════════════════════════════════════════════════════════ */
+  .toast {
+    position: fixed;
+    bottom: 24px; left: 50%;
+    transform: translateX(-50%);
+    background: var(--green);
+    color: #fff;
+    padding: 8px 18px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .25s ease, transform .25s ease;
+    z-index: 9999;
+  }
+
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(-5px); }
+
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     13. SCROLLBAR  (same custom styling as main app)
+  ═══════════════════════════════════════════════════════════════════════ */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--surface); }
+  ::-webkit-scrollbar-thumb { background: var(--muted); border-radius: 4px; }
+
+  /* ── FOOTER ── */
+.footer {
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  padding: 20px 24px;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+.footer-inner {
+  max-width: 1300px; margin: 0 auto;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 14px 24px;
+  justify-content: space-between;
+}
+.footer-copyright {
+  font-size: 11.5px; font-weight: 500; color: var(--muted);
+  white-space: nowrap;
+}
+.footer-links {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px;
+}
+.footer-link {
+  font-size: 11.5px; font-weight: 600; color: var(--muted);
+  text-decoration: none; padding: 5px 12px; border-radius: 6px;
+  border: 1px solid var(--border); background: var(--surface2);
+  transition: all 0.2s ease;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.footer-link:hover { color: var(--text); border-color: var(--brand); }
+.footer-link svg { width: 14px; height: 14px; flex-shrink: 0; opacity: 0.8; }
+
+/* Primary-styled "Back to App" link — same treatment as .btn-primary */
+.footer-link.primary {
+  color: #fff; background: var(--brand); border-color: var(--brand);
+  box-shadow: 0 2px 8px rgba(8, 117, 190, 0.25); font-weight: 700;
+}
+.footer-link.primary:hover {
+  background: var(--brand-dk); transform: translateY(-1px);
+  color: #fff; border-color: var(--brand-dk);
+}
+.footer-link.primary svg { opacity: 1; }
+
+@media (max-width: 600px) {
+  .footer-inner { flex-direction: column; text-align: center; }
+  .footer-links { justify-content: center; }
+}
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     14. EXPORT FORMAT COMPARISON CARDS
+  ═══════════════════════════════════════════════════════════════════════ */
+  .export-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 10px;
+    margin: 14px 0;
+  }
+
+  .export-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    transition: border-color 0.2s;
+  }
+
+  .export-card:hover { border-color: var(--brand); }
+
+  .export-icon { font-size: 22px; margin-bottom: 8px; }
+
+  .export-name {
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  .export-desc {
+    font-size: 11.5px;
+    color: var(--muted);
+    line-height: 1.55;
+  }
+
+</style>
+</head>
+<body>
+
+<!-- ═════════════════════════════════════════════════════════════════════
+     HEADER
+     Matches the main app header exactly.
+     "← Back to App" link points to index.html in the same folder.
+═════════════════════════════════════════════════════════════════════ -->
+<header>
+  <div class="header-inner">
+    <div class="logo-mark">🔆</div>
+    <div>
+      <div class="header-title">Fiber Optic Color Chart Builder</div>
+      <div class="header-sub">TIA-598-D &nbsp;·&nbsp; Documentation &amp; User Guide</div>
+    </div>
+    <nav class="header-nav">
+      <a href="#quick-start">Quick Start</a>
+      <a href="#interface">Interface</a>
+      <a href="#tia-standard">TIA-598-D</a>
+      <a href="#export">Export</a>
+      <a href="index.html" class="btn-primary">← Back to App</a>
+    </nav>
+  </div>
+</header>
+
+
+<!-- ═════════════════════════════════════════════════════════════════════
+     PAGE BODY — two-column grid
+     Left: sticky nav sidebar
+     Right: scrollable documentation content
+═════════════════════════════════════════════════════════════════════ -->
+<div class="page-layout">
+
+  <!-- ── SIDEBAR NAV ─────────────────────────────────────────────── -->
+  <aside class="doc-nav" aria-label="Documentation navigation">
+    <div class="doc-nav-header">On this page</div>
+    <ul>
+      <li><a href="#overview">Overview</a></li>
+      <li><a href="#quick-start">Quick Start</a></li>
+      <li><a href="#interface">Interface</a></li>
+      <li class="sub"><a href="#toolbar">Toolbar</a></li>
+      <li class="sub"><a href="#fiber-chart">Fiber Chart</a></li>
+      <li class="sub"><a href="#sidebar-panels">Sidebar Panels</a></li>
+      <li><a href="#assignments">Assigning Counts</a></li>
+      <li class="sub"><a href="#row-mode">Row Mode</a></li>
+      <li class="sub"><a href="#paste-mode">Paste Mode</a></li>
+      <li class="sub"><a href="#click-assign">Click to Assign</a></li>
+      <li><a href="#dead-fibers">Dead Fibers</a></li>
+      <li><a href="#tia-standard">TIA-598-D Standard</a></li>
+      <li><a href="#toggles">Toggles Reference</a></li>
+      <li><a href="#lookup">Fiber Lookup</a></li>
+      <li><a href="#export">Export &amp; Saving</a></li>
+      <li><a href="#troubleshooting">Troubleshooting</a></li>
+    </ul>
+    <!-- Theme toggle lives in the nav footer, same as in the app toolbar -->
+    <div class="nav-footer">
+      <input type="checkbox" id="themeToggle" class="toggle-switch">
+      <label for="themeToggle" style="cursor:pointer; font-size:11.5px; font-weight:600; color:var(--muted);">
+        🌗 Light theme
+      </label>
+    </div>
+  </aside>
+
+
+  <!-- ── MAIN CONTENT ─────────────────────────────────────────────── -->
+  <main class="doc-content">
+
+    <!-- ── HERO / INTRO ─────────────────────────────────────────── -->
+    <section class="doc-section" id="overview">
+      <h1 class="doc-title">
+        <span>Fiber Optic</span> Color Chart Builder
+      </h1>
+      <p class="doc-subtitle">
+        An interactive, browser-based tool for planning and documenting fiber optic splice
+        assignments using the TIA-598-D color code standard. No installation required —
+        everything runs locally in your browser.
+      </p>
+
+      <p>
+        The app generates a visual color chart for any standard fiber count (6 to 1728 fibers),
+        lets you map splice "count" labels to specific fiber positions, and exports the finished
+        chart as a PNG image, PDF, printable page, or a fully self-contained HTML file you can
+        share with colleagues.
+      </p>
+
+      <div class="callout callout-info">
+        <span class="callout-icon">ℹ️</span>
+        <span>
+          All data lives entirely in your browser — nothing is uploaded to a server.
+          Use <strong>💾 Save Web Page</strong> to preserve your work between sessions.
+        </span>
+      </div>
+    </section>
+
+
+    <!-- ── QUICK START ──────────────────────────────────────────── -->
+    <section class="doc-section" id="quick-start">
+      <h2 class="section-heading">
+        <span class="icon">🚀</span> Quick Start
+      </h2>
+
+      <p>Follow these five steps to produce your first completed splice chart in under two minutes.</p>
+
+      <div class="steps">
+
+        <div class="step-card">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <div class="step-title">Name your project</div>
+            <div class="step-desc">
+              Type a project name into the <strong>Project Title</strong> field in the toolbar
+              (e.g. <em>Node 14 Splice</em>). This label appears in the chart header and is
+              included in exported file names.
+            </div>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <div class="step-title">Set your cable size</div>
+            <div class="step-desc">
+              Choose the total fiber count from the <strong>Cable Size</strong> dropdown
+              (6 – 1728 fibers). The chart redraws instantly. Also select the correct
+              <strong>Fibers/Ribbon</strong> count (12 is standard; 6, 16 MPO, or 24 for
+              specialty cables).
+            </div>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <div class="step-title">Enter count assignments</div>
+            <div class="step-desc">
+              In the <strong>Count Assignments</strong> panel on the right, click
+              <strong>+ Add row</strong>, type a label (e.g. <code>A</code>), and fill in a
+              starting fiber number. Add more rows for each count. When ready, press
+              <strong>Apply to Chart</strong>.
+            </div>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <div class="step-title">Review the chart</div>
+            <div class="step-desc">
+              Each fiber cell displays the count label on top and the fiber position below.
+              Click any individual fiber cell to manually assign or override a label for
+              just that fiber. Dead fibers appear greyed-out with a dashed outline.
+            </div>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-num">5</div>
+          <div class="step-body">
+            <div class="step-title">Export your chart</div>
+            <div class="step-desc">
+              Use <strong>💾 Save Web Page</strong> to create a shareable HTML snapshot,
+              <strong>📷 PNG</strong> for an image, <strong>📄 PDF</strong> for a print-ready
+              document, or <strong>🖨️ Print</strong> to send directly to a printer.
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /.steps -->
+    </section>
+
+
+    <!-- ── INTERFACE ────────────────────────────────────────────── -->
+    <section class="doc-section" id="interface">
+      <h2 class="section-heading">
+        <span class="icon">🖥️</span> Interface Overview
+      </h2>
+      <p>
+        The app is divided into three main zones: the <strong>Toolbar</strong> at the top,
+        the <strong>Fiber Chart</strong> in the main content area, and the
+        <strong>Sidebar Panels</strong> on the right.
+      </p>
+    </section>
+
+
+    <!-- Toolbar sub-section -->
+    <section class="doc-section" id="toolbar">
+      <h3 class="sub-heading">Toolbar</h3>
+      <p>
+        The toolbar sticks to the top of the page as you scroll. It contains all global
+        controls and is split into logical groups separated by thin dividers.
+      </p>
+
+      <div class="feature-grid">
+
+        <div class="feature-card">
+          <div class="feature-title">
+            Project Title
+            <span class="tag tag-input">Text</span>
+          </div>
+          <div class="feature-desc">
+            Free-form text field. The value appears live in the chart header and is embedded
+            in exported PNG/PDF file names and the PDF header line.
+          </div>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-title">
+            Cable Size
+            <span class="tag tag-select">Select</span>
+          </div>
+          <div class="feature-desc">
+            Total fiber count of the cable: 6, 12, 24, 36, 48, 72, 96, 144, 216, 288, 432,
+            576, 864, or 1728. Changes take effect immediately and reset the chart.
+          </div>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-title">
+            Fibers / Ribbon
+            <span class="tag tag-select">Select</span>
+          </div>
+          <div class="feature-desc">
+            Number of individual fibers in each ribbon. Default is 12 (standard loose-tube
+            and ribbon). Use 16 for MPO assemblies, 6 or 24 for specialty ribbons.
+          </div>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-title">
+            🧪 Tube View
+            <span class="tag tag-toggle">Toggle</span>
+          </div>
+          <div class="feature-desc">
+            Only visible for cables ≥ 432 fibers. Groups ribbons into six-tube super-bundles
+            (using the TIA Blue–White tube color cycle), making large cables easier to read.
+          </div>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-title">
+            Color Sync
+            <span class="tag tag-toggle">Toggle</span>
+          </div>
+          <div class="feature-desc">
+            When ON (default), count assignments are automatically snapped to start on the
+            next TIA-598-D color boundary (multiples of 12). Keeps your chart visually clean.
+          </div>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-title">
+            Color Sep
+            <span class="tag tag-toggle">Toggle</span>
+          </div>
+          <div class="feature-desc">
+            Renders a thin colored accent bar between adjacent count assignments so you can
+            visually distinguish groups at a glance without reading every label.
+          </div>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-title">
+            ⚠️ Alerts
+            <span class="tag tag-toggle">Toggle</span>
+          </div>
+          <div class="feature-desc">
+            Enables strict validation: alerts you if two entries assign the same label and
+            fiber number, or if a count would overflow the cable's total fiber count.
+            Disable to allow loose/exploratory layouts.
+          </div>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-title">
+            🌗 Theme
+            <span class="tag tag-toggle">Toggle</span>
+          </div>
+          <div class="feature-desc">
+            Switches between dark (default) and light themes. Your preference is saved in
+            <code>localStorage</code> under the key <code>lumo_fiber_theme</code> and
+            persists across sessions.
+          </div>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-title">
+            Clear All
+            <span class="tag tag-action">Action</span>
+          </div>
+          <div class="feature-desc">
+            Removes all count assignments and resets the chart to a blank state. The cable
+            size, ribbon size, and toggles are preserved. Cannot be undone.
+          </div>
+        </div>
+
+      </div><!-- /.feature-grid -->
+    </section>
+
+
+    <!-- Fiber Chart sub-section -->
+    <section class="doc-section" id="fiber-chart">
+      <h3 class="sub-heading">Fiber Chart</h3>
+
+      <p>
+        The chart is a color-coded table where each cell represents one fiber. Cells are
+        arranged into rows (ribbons) and groups (tubes or bundles). The column headers show
+        the fiber position range for that column.
+      </p>
+
+      <p>Each fiber cell shows three pieces of information:</p>
+
+      <table class="ref-table">
+        <thead>
+          <tr>
+            <th>Location in cell</th>
+            <th>What it shows</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Top (orange label)</td>
+            <td>The count label assigned to this fiber (e.g. <code>A</code>, <code>F037</code>).
+                Blank if unassigned.</td>
+          </tr>
+          <tr>
+            <td>Middle (large number)</td>
+            <td>The splice count number within the assigned label. Empty dash if unassigned.</td>
+          </tr>
+          <tr>
+            <td>Bottom (small number)</td>
+            <td>The absolute fiber position in the cable (e.g. <code>72</code>).</td>
+          </tr>
+          <tr>
+            <td>Bottom color bar</td>
+            <td>When Color Sep is ON, a thin bar shows the label's accent color to group
+                adjacent fibers visually.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout callout-tip">
+        <span class="callout-icon">💡</span>
+        <span>
+          Hover over any fiber cell to see it enlarge slightly. Click a cell to open the
+          <strong>Assign Count</strong> modal for fine-grained individual overrides.
+        </span>
+      </div>
+    </section>
+
+
+    <!-- Sidebar sub-section -->
+    <section class="doc-section" id="sidebar-panels">
+      <h3 class="sub-heading">Sidebar Panels</h3>
+      <p>Three stacked panels live in the right-hand sidebar:</p>
+
+      <table class="ref-table">
+        <thead>
+          <tr>
+            <th>Panel</th>
+            <th>Purpose</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Count Assignments</td>
+            <td>Where you enter and manage splice count rows. Supports both row-by-row form
+                input and bulk paste mode.</td>
+          </tr>
+          <tr>
+            <td>Active Counts</td>
+            <td>A live summary of every label currently plotted on the chart, showing its
+                color swatch, name, and the fiber range it occupies. Click a label name to
+                rename it inline.</td>
+          </tr>
+          <tr>
+            <td>TIA-598-D Color Sequence</td>
+            <td>A static legend showing all 12 TIA colors in order (Blue → Aqua). Use this
+                as a quick reference when reading the chart.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+
+    <!-- ── ASSIGNMENTS ──────────────────────────────────────────── -->
+    <section class="doc-section" id="assignments">
+      <h2 class="section-heading">
+        <span class="icon">📋</span> Assigning Counts
+      </h2>
+      <p>
+        There are three ways to assign splice counts to fibers. All three produce the same
+        result; choose the method that fits your workflow.
+      </p>
+    </section>
+
+    <!-- Row mode -->
+    <section class="doc-section" id="row-mode">
+      <h3 class="sub-heading">Row Mode (default)</h3>
+      <p>
+        The default input mode in the <strong>Count Assignments</strong> panel. Each row
+        represents one contiguous block of fibers assigned to a single label.
+      </p>
+
+      <table class="ref-table">
+        <thead>
+          <tr>
+            <th>Column</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Label</td>
+            <td>Any text string — the splice count identifier (e.g. <code>A</code>,
+                <code>F037</code>, <code>backbone</code>). Use <code>XD</code>,
+                <code>D</code>, or <code>dead</code> to mark dead fibers (see below).</td>
+          </tr>
+          <tr>
+            <td>Start #</td>
+            <td>The first count number within that label, or for dead fibers, the absolute
+                fiber position to mark dead.</td>
+          </tr>
+          <tr>
+            <td>End #</td>
+            <td>Optional. If filled, creates a range. For regular labels the count increments
+                from Start to End; for dead fibers the position range is marked dead.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>
+        Click <strong>+ Add row</strong> to append a new blank row.
+        Click the <strong>×</strong> button on any row to remove it.
+        Finally, click <strong>Apply to Chart</strong> to push all rows to the chart.
+      </p>
+
+      <div class="callout callout-tip">
+        <span class="callout-icon">💡</span>
+        <span>
+          Click <strong>Example</strong> to load a sample dataset and see how rows map
+          to the chart. It is a great way to explore the app for the first time.
+        </span>
+      </div>
+    </section>
+
+    <!-- Paste mode -->
+    <section class="doc-section" id="paste-mode">
+      <h3 class="sub-heading">Paste Mode</h3>
+      <p>
+        Click <strong>paste mode</strong> in the panel header to switch to a textarea where
+        you can paste a comma-separated list of assignments — ideal when you already have
+        count data in a spreadsheet or text file.
+      </p>
+
+      <p>Each line must follow one of these formats:</p>
+
+      <pre><code><span class="comment"># Single count — label gets one fiber</span>
+<span class="kw">LABEL</span>,<span class="val">N</span>
+
+<span class="comment"># Range of counts — label gets fibers N through M</span>
+<span class="kw">LABEL</span>,<span class="val">N-M</span>
+
+<span class="comment"># Dead fiber(s) — absolute position(s) to mark as dead</span>
+<span class="kw">XD</span>,<span class="val">1-6</span>
+<span class="kw">D</span>,<span class="val">49</span></code></pre>
+
+      <p>A realistic paste example for a 144-fiber cable:</p>
+
+      <pre><code>XD,1-6
+A,1-12
+B,13-24
+XD,37-48
+C,25-36</code></pre>
+
+      <p>
+        After pasting, click <strong>Apply</strong>. The app parses each line, builds
+        the assignment map, and re-renders the chart. Invalid lines are silently skipped.
+      </p>
+
+      <div class="callout callout-warn">
+        <span class="callout-icon">⚠️</span>
+        <span>
+          Label names are case-sensitive: <code>A</code> and <code>a</code> are treated
+          as different splice counts. Dead-fiber keywords (<code>XD</code>, <code>D</code>,
+          <code>dead</code>) are case-insensitive.
+        </span>
+      </div>
+    </section>
+
+    <!-- Click to assign -->
+    <section class="doc-section" id="click-assign">
+      <h3 class="sub-heading">Click to Assign (Individual Fiber Override)</h3>
+      <p>
+        Click any fiber cell in the chart to open the <strong>Assign Count</strong> modal.
+        This lets you assign or override the label for a single fiber, or start a range
+        from that fiber.
+      </p>
+
+      <table class="ref-table">
+        <thead>
+          <tr>
+            <th>Modal field</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Label</td>
+            <td>The count name to assign to this fiber (and optionally the range).</td>
+          </tr>
+          <tr>
+            <td>End fiber</td>
+            <td>Optional. If provided, all fibers from the clicked fiber through this
+                number are assigned the same label.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>
+        Press <strong>Assign</strong> (or hit <kbd>Enter</kbd>) to confirm.
+        Press <strong>Cancel</strong> or <kbd>Escape</kbd> to dismiss.
+      </p>
+
+      <div class="callout callout-info">
+        <span class="callout-icon">ℹ️</span>
+        <span>
+          Individual fiber assignments made via the modal are merged into the chart state
+          alongside row-based assignments and are fully preserved in <strong>Save Web Page</strong>
+          exports.
+        </span>
+      </div>
+    </section>
+
+
+    <!-- ── DEAD FIBERS ──────────────────────────────────────────── -->
+    <section class="doc-section" id="dead-fibers">
+      <h2 class="section-heading">
+        <span class="icon">💀</span> Dead Fibers
+      </h2>
+
+      <p>
+        Dead fibers (also called "cuts", "darks", or "non-working fibers") are fibers that
+        are broken, spliced to themselves, or intentionally excluded from use.
+        The app renders dead fibers with a greyscale wash and a dashed outline to make them
+        easy to spot.
+      </p>
+
+      <p>
+        To mark fibers as dead, use any of these reserved labels in Row Mode or Paste Mode:
+      </p>
+
+      <table class="ref-table">
+        <thead>
+          <tr>
+            <th>Label value</th>
+            <th>Interpretation</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>XD</td>
+            <td>Cross-dead (most common). Marks the specified absolute fiber position(s) as dead.</td>
+          </tr>
+          <tr>
+            <td>D</td>
+            <td>Dead — shorthand alias for <code>XD</code>.</td>
+          </tr>
+          <tr>
+            <td>dead</td>
+            <td>Verbose form — also accepted (case-insensitive).</td>
+          </tr>
+          <tr>
+            <td>cut dead</td>
+            <td>Also accepted; shown with the same dead-fiber styling.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>
+        Unlike regular count labels, the number(s) provided for dead fibers are interpreted
+        as <em>absolute fiber positions</em>, not splice count numbers. So
+        <code>XD,1-6</code> marks fibers 1 through 6 as dead at their physical positions
+        in the cable.
+      </p>
+
+      <div class="callout callout-warn">
+        <span class="callout-icon">⚠️</span>
+        <span>
+          With <strong>Alerts</strong> ON, marking the same absolute position as dead more
+          than once triggers a conflict error. Disable Alerts if you need to work around
+          this during exploratory planning.
+        </span>
+      </div>
+    </section>
+
+
+    <!-- ── TIA-598-D ────────────────────────────────────────────── -->
+    <section class="doc-section" id="tia-standard">
+      <h2 class="section-heading">
+        <span class="icon">🎨</span> TIA-598-D Color Standard
+      </h2>
+
+      <p>
+        TIA-598-D (ANSI/TIA-598-D) is the North American standard that defines the color
+        coding for optical fiber cables. It assigns a unique color to each fiber position
+        within a 12-fiber ribbon or bundle, then repeats the 12-color cycle for each
+        subsequent group.
+      </p>
+
+      <p>The 12 standard colors in order are:</p>
+
+      <!-- TIA color swatches -->
+      <div class="color-table">
+        <div class="color-item">
+          <div class="color-swatch" style="background:#1565c0;"></div>
+          Blue <span class="color-pos">#1</span>
+        </div>
+        <div class="color-item">
+          <div class="color-swatch" style="background:#e65100;"></div>
+          Orange <span class="color-pos">#2</span>
+        </div>
+        <div class="color-item">
+          <div class="color-swatch" style="background:#2e7d32;"></div>
+          Green <span class="color-pos">#3</span>
+        </div>
+        <div class="color-item">
+          <div class="color-swatch" style="background:#6d4c41;"></div>
+          Brown <span class="color-pos">#4</span>
+        </div>
+        <div class="color-item">
+          <div class="color-swatch" style="background:#607d8b;"></div>
+          Slate <span class="color-pos">#5</span>
+        </div>
+        <div class="color-item">
+          <div class="color-swatch" style="background:#eceff1; border:1px solid #ccc;"></div>
+          White <span class="color-pos">#6</span>
+        </div>
+        <div class="color-item">
+          <div class="color-swatch" style="background:#c62828;"></div>
+          Red <span class="color-pos">#7</span>
+        </div>
+        <div class="color-item">
+          <div class="color-swatch" style="background:#212121;"></div>
+          Black <span class="color-pos">#8</span>
+        </div>
+        <div class="color-item">
+          <div class="color-swatch" style="background:#ffeb3b; border:1px solid #ccc;"></div>
+          Yellow <span class="color-pos">#9</span>
+        </div>
+        <div class="color-item">
+          <div class="color-swatch" style="background:#6a1b9a;"></div>
+          Violet <span class="color-pos">#10</span>
+        </div>
+        <div class="color-item">
+          <div class="color-swatch" style="background:#e91e8c;"></div>
+          Rose <span class="color-pos">#11</span>
+        </div>
+        <div class="color-item">
+          <div class="color-swatch" style="background:#0097a7;"></div>
+          Aqua <span class="color-pos">#12</span>
+        </div>
+      </div>
+
+      <p>
+        For cables larger than 12 fibers, the color cycle repeats with each new ribbon/tube.
+        For very large cables (432+ fibers), ribbons are further grouped into super-bundles
+        using the same 12-color cycle applied at the tube level — visible in
+        <strong>Tube View</strong> mode.
+      </p>
+
+      <div class="callout callout-info">
+        <span class="callout-icon">ℹ️</span>
+        <span>
+          The <strong>Color Sync</strong> toggle enforces alignment to 12-fiber boundaries,
+          keeping your count assignments synchronized with the TIA color groups. This makes
+          charts much easier to read in the field.
+        </span>
+      </div>
+    </section>
+
+
+    <!-- ── TOGGLES REFERENCE ────────────────────────────────────── -->
+    <section class="doc-section" id="toggles">
+      <h2 class="section-heading">
+        <span class="icon">⚙️</span> Toggles Reference
+      </h2>
+
+      <p>Quick-reference for every toggle in the toolbar:</p>
+
+      <table class="ref-table">
+        <thead>
+          <tr>
+            <th>Toggle</th>
+            <th>Default</th>
+            <th>What it does</th>
+            <th>When to turn off</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>🧪 Tube View</td>
+            <td>ON (≥432 only)</td>
+            <td>Groups ribbons into 6-ribbon super-bundles with colored tube headers.</td>
+            <td>For cables ≥432 where you prefer a flat list of ribbons.</td>
+          </tr>
+          <tr>
+            <td>Color Sync</td>
+            <td>ON</td>
+            <td>Aligns assignment start positions to the nearest 12-fiber boundary (TIA color group).</td>
+            <td>When you have a specific reason for mid-group splits.</td>
+          </tr>
+          <tr>
+            <td>Color Sep</td>
+            <td>OFF</td>
+            <td>Adds a thin color bar at the bottom of each fiber cell, color-keyed to its label.</td>
+            <td>When the extra color layer feels visually noisy on dense charts.</td>
+          </tr>
+          <tr>
+            <td>⚠️ Alerts</td>
+            <td>ON</td>
+            <td>Validates for duplicate label+position combos and cable capacity overruns before applying.</td>
+            <td>During exploratory planning where rough/overlapping layouts are fine.</td>
+          </tr>
+          <tr>
+            <td>🌗 Theme</td>
+            <td>Dark</td>
+            <td>Switches the entire UI to a light color palette. Saved to localStorage.</td>
+            <td>Whenever you prefer dark mode.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+
+    <!-- ── FIBER LOOKUP ─────────────────────────────────────────── -->
+    <section class="doc-section" id="lookup">
+      <h2 class="section-heading">
+        <span class="icon">🔍</span> Fiber Position Lookup
+      </h2>
+
+      <p>
+        The lookup tool sits at the far right of the toolbar. Type any fiber position number
+        into the field and the chart instantly reveals which count label and count number
+        (if any) are assigned to that position.
+      </p>
+
+      <p>The result is displayed next to the input field in the format:</p>
+
+      <pre><code><span class="val">Label</span> · count <span class="val">N</span></code></pre>
+
+      <p>
+        If the fiber is unassigned, the result shows a dash (<code>—</code>).
+        If the fiber is dead, it shows the dead status.
+        The matching fiber cell is scrolled into view and highlighted.
+      </p>
+    </section>
+
+
+    <!-- ── EXPORT ───────────────────────────────────────────────── -->
+    <section class="doc-section" id="export">
+      <h2 class="section-heading">
+        <span class="icon">💾</span> Export &amp; Saving
+      </h2>
+
+      <p>
+        Four export options are available. Each is best suited for a different workflow:
+      </p>
+
+      <div class="export-grid">
+
+        <div class="export-card">
+          <div class="export-icon">💾</div>
+          <div class="export-name">Save Web Page</div>
+          <div class="export-desc">
+            Downloads a fully self-contained <code>.html</code> file with your entire
+            chart state baked in. Open it in any browser — no internet connection required.
+            This is the recommended way to save and share your work.
+          </div>
+        </div>
+
+        <div class="export-card">
+          <div class="export-icon">📷</div>
+          <div class="export-name">PNG Image</div>
+          <div class="export-desc">
+            Renders the chart area to a high-resolution PNG (2× scale). Best for embedding
+            in emails, tickets, or documentation wikis. File name includes your project title
+            and cable size automatically.
+          </div>
+        </div>
+
+        <div class="export-card">
+          <div class="export-icon">📄</div>
+          <div class="export-name">PDF</div>
+          <div class="export-desc">
+            Creates a landscape A4 PDF with the chart image and a header line containing
+            the project title, standard name, fiber count, and export date. Best for
+            printing or formal deliverables.
+          </div>
+        </div>
+
+        <div class="export-card">
+          <div class="export-icon">🖨️</div>
+          <div class="export-name">Print</div>
+          <div class="export-desc">
+            Opens the browser's native print dialog. The toolbar, sidebar, and modals are
+            automatically hidden. Switch to light theme first for better ink economy.
+          </div>
+        </div>
+
+      </div><!-- /.export-grid -->
+
+      <h3 class="sub-heading">How Save Web Page works</h3>
+      <p>
+        When you click <strong>💾 Save Web Page</strong>, the app serializes the following
+        state into a <code>&lt;script type="application/json"&gt;</code> tag embedded
+        directly in the downloaded HTML:
+      </p>
+
+      <table class="ref-table">
+        <thead>
+          <tr>
+            <th>State key</th>
+            <th>What it stores</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>cableSize</td>
+            <td>The selected cable fiber count.</td>
+          </tr>
+          <tr>
+            <td>fibersPerRibbon</td>
+            <td>The selected ribbon/group size.</td>
+          </tr>
+          <tr>
+            <td>projectTitle</td>
+            <td>The project title text field value.</td>
+          </tr>
+          <tr>
+            <td>countRowData</td>
+            <td>All rows from the Count Assignments panel.</td>
+          </tr>
+          <tr>
+            <td>customColors</td>
+            <td>Any custom label colors set via the color picker.</td>
+          </tr>
+          <tr>
+            <td>all toggles</td>
+            <td>The state of all five toolbar toggles.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>
+        When you open the saved <code>.html</code> file, the app detects the embedded state
+        tag, parses it, and restores your full session automatically.
+      </p>
+
+      <div class="callout callout-tip">
+        <span class="callout-icon">💡</span>
+        <span>
+          You can open a saved <code>.html</code> file, make changes, and re-save it — the
+          new version will contain the updated state.
+        </span>
+      </div>
+
+      <h3 class="sub-heading">Custom Label Colors</h3>
+      <p>
+        In the <strong>Active Counts</strong> panel, click any label name (it has a dashed
+        underline) to open the <strong>Change Label Color</strong> modal. Pick a custom color
+        to override the default hash-derived color for that label. Click
+        <strong>Reset</strong> to revert to the default. Custom colors are saved in the
+        web-page export.
+      </p>
+    </section>
+
+
+    <!-- ── TROUBLESHOOTING ──────────────────────────────────────── -->
+    <section class="doc-section" id="troubleshooting">
+      <h2 class="section-heading">
+        <span class="icon">🛠️</span> Troubleshooting
+      </h2>
+
+      <table class="ref-table">
+        <thead>
+          <tr>
+            <th>Symptom</th>
+            <th>Likely cause &amp; fix</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>"COUNT CONFLICT DETECTED" alert</td>
+            <td>Two rows assign the same label + count number. Check for overlapping ranges
+                in the Count Assignments panel, or turn off <strong>Alerts</strong>.</td>
+          </tr>
+          <tr>
+            <td>"ROUTING CAPACITY ERROR" alert</td>
+            <td>The total counts exceed the cable's fiber count. Reduce assignment ranges
+                or increase the Cable Size. Or turn off <strong>Alerts</strong> to allow
+                overflow.</td>
+          </tr>
+          <tr>
+            <td>PNG / PDF export is blank or dark</td>
+            <td><code>html2canvas</code> may not have finished loading. Wait a moment and
+                try again, or refresh the page if the libraries fail to load from the CDN.</td>
+          </tr>
+          <tr>
+            <td>Saved Web Page doesn't restore my data</td>
+            <td>Make sure you opened the <em>downloaded</em> <code>.html</code> file, not
+                the original <code>index.html</code>. The state is embedded in the file
+                at save time.</td>
+          </tr>
+          <tr>
+            <td>Color Sync skips my start position</td>
+            <td>This is intentional: Color Sync rounds up to the nearest 12-fiber boundary.
+                Turn off <strong>Color Sync</strong> if you need exact positioning.</td>
+          </tr>
+          <tr>
+            <td>Tube View toggle is not visible</td>
+            <td>Tube View only appears for cables with 432 or more fibers.</td>
+          </tr>
+          <tr>
+            <td>Theme resets to dark on reload</td>
+            <td>Theme preference is read from <code>localStorage</code>. If your browser
+                is set to clear site data on close, the preference won't persist. Re-toggle
+                after loading.</td>
+          </tr>
+          <tr>
+            <td>Print output is missing colors</td>
+            <td>Enable "Print background graphics" in your browser's print settings. In
+                Chrome: More settings → Background graphics.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+  </main><!-- /.doc-content -->
+</div><!-- /.page-layout -->
+
+<footer class="footer">
+  <div class="footer-inner">
+    <span class="footer-copyright">© 2026 Benjamin Cacak &amp; Justin Barnett</span>
+    <div class="footer-links">
+      <a class="footer-link primary" href="index.html" title="Back to App">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 12h14"/><path d="M12 19l-7-7 7-7"/>
+        </svg>
+        Back to App
+      </a>
+      <a class="footer-link" href="https://github.com/bencacak/splicingbible" target="_blank" rel="noopener noreferrer" title="GitHub Repository">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5A11.5 11.5 0 0 0 .5 12a11.5 11.5 0 0 0 7.86 10.93c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.53-1.34-1.3-1.7-1.3-1.7-1.06-.72.08-.71.08-.71 1.17.08 1.78 1.2 1.78 1.2 1.04 1.78 2.73 1.27 3.4.97.1-.75.41-1.27.74-1.56-2.55-.29-5.23-1.28-5.23-5.68 0-1.25.45-2.28 1.18-3.08-.12-.29-.51-1.46.11-3.05 0 0 .96-.31 3.15 1.18a10.9 10.9 0 0 1 5.74 0c2.18-1.49 3.14-1.18 3.14-1.18.63 1.59.24 2.76.12 3.05.74.8 1.18 1.83 1.18 3.08 0 4.41-2.69 5.38-5.25 5.67.42.36.8 1.07.8 2.16v3.2c0 .31.21.67.8.56A11.5 11.5 0 0 0 23.5 12 11.5 11.5 0 0 0 12 .5z"/></svg>
+        GitHub Repo
+      </a>
+      <a class="footer-link" href="https://bencacak.github.io/splicingbible/" target="_blank" rel="noopener noreferrer" title="Live Site">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+        </svg>
+        Live Site
+      </a>
+    </div>
+  </div>
+</footer>
+<!-- Toast notification (same implementation as main app) -->
+<div class="toast" id="toast"></div>
+
+
+<!-- ═════════════════════════════════════════════════════════════════════
+     JAVASCRIPT
+     Handles:
+       1. Theme toggle (reads/writes localStorage, mirrors main app)
+       2. Active nav link highlighting via IntersectionObserver
+       3. Toast helper (used to confirm nav actions)
+═════════════════════════════════════════════════════════════════════ -->
+<script>
+
+/* ── 1. THEME TOGGLE ─────────────────────────────────────────────────
+   Identical logic to the main app so both pages share the same
+   localStorage key ('lumo_fiber_theme'). Opening docs.html after
+   setting a theme in the app will restore the same appearance.
+──────────────────────────────────────────────────────────────────── */
+const themeToggle = document.getElementById('themeToggle');
+
+// Read the saved theme preference (default: 'dark')
+const savedTheme = localStorage.getItem('lumo_fiber_theme') || 'dark';
+
+// Apply saved theme on page load before any paint to avoid flash
+if (savedTheme === 'light') {
+  document.documentElement.setAttribute('data-theme', 'light');
+  themeToggle.checked = true;
+}
+
+// Listen for toggle changes and persist to localStorage
+themeToggle.addEventListener('change', () => {
+  const newTheme = themeToggle.checked ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', newTheme);
+  localStorage.setItem('lumo_fiber_theme', newTheme);
+});
+
+
+/* ── 2. ACTIVE NAV LINK HIGHLIGHTING ────────────────────────────────
+   Uses IntersectionObserver to track which doc section is currently
+   in view and applies an .active class to the matching sidebar link.
+   The rootMargin is tuned to fire slightly before a section reaches
+   the top of the viewport, giving a responsive feel.
+──────────────────────────────────────────────────────────────────── */
+const navLinks    = document.querySelectorAll('.doc-nav a[href^="#"]');
+const docSections = document.querySelectorAll('.doc-section[id]');
+
+// Build a map of  section-id → nav anchor  for quick lookup
+const linkMap = {};
+navLinks.forEach(link => {
+  const id = link.getAttribute('href').slice(1); // strip the '#'
+  linkMap[id] = link;
+});
+
+// Observer: fire when a section is >= 20% visible in the viewport
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    const link = linkMap[entry.target.id];
+    if (!link) return;
+
+    if (entry.isIntersecting) {
+      // Remove .active from all links, then set it on the visible one
+      navLinks.forEach(l => l.classList.remove('active'));
+      link.classList.add('active');
+    }
+  });
+}, {
+  rootMargin: '0px 0px -60% 0px', // trigger when section enters top 40%
+  threshold: 0
+});
+
+// Attach observer to every section that has an id attribute
+docSections.forEach(section => observer.observe(section));
+
+
+/* ── 3. TOAST NOTIFICATION HELPER ────────────────────────────────────
+   Exact copy of the showToast() function from the main app so any
+   feedback messages (e.g. "Copied!") feel consistent.
+──────────────────────────────────────────────────────────────────── */
+const toast = document.getElementById('toast');
+let toastTimer;
+
+function showToast(msg) {
+  toast.textContent = msg;
+  toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('show'), 2000);
+}
+
+</script>
+</body>
+</html>
